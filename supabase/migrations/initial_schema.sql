@@ -5,7 +5,7 @@ create table if not exists public.applications (
   created_at timestamptz not null default now(),
   name text not null check (char_length(name) between 2 and 20),
   phone text not null,
-  certificate text not null check (certificate in ('한식조리기능사', '요양보호사', '공인중개사')),
+  certificate text not null check (certificate in ('한식조리기능사', '지게차운전기능사', '굴착기운전기능사', '전기기능사', '손해평가사', '공인중개사', '요양보호사', '위생사')),
   channel text not null default '웹',
   note text not null default '',
   status text not null default '신규' check (status in ('신규', '확인', '완료'))

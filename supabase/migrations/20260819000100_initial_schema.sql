@@ -1,6 +1,4 @@
--- Supabase SQL Editor에서 한 번 실행합니다.
--- 공개 사용자는 신청/질문 등록과 FAQ 조회만, 로그인한 관리자는 운영 데이터 조회/수정이 가능합니다.
--- Authentication > Providers > Email에서 공개 회원가입을 끄고 직원 계정만 직접 생성하세요.
+-- Supabase CLI용 최초 스키마 이력입니다. 수동 실행용 initial_schema.sql과 같은 구조입니다.
 
 create table if not exists public.applications (
   id text primary key,
