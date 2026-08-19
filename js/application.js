@@ -64,7 +64,7 @@
       showError(`신청을 저장하지 못했습니다. ${error.message}`, submitButton);
     } finally {
       submitButton.disabled = false;
-      submitButton.textContent = "접수 도움 신청하기";
+      submitButton.textContent = "새 접수 신청하기";
     }
   });
 

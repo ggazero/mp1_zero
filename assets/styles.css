@@ -81,11 +81,13 @@ h1 { max-width: 720px; margin-bottom: 20px; font-size: clamp(38px, 5vw, 62px); l
 .section { padding: 78px 0; }
 .section.compact { padding: 48px 0; }
 .section.alt { background: #f8f4eb; }
+#certificates, #application, #application-lookup { min-height: calc(100svh - 76px); display: flex; align-items: center; }
+.application-page main > section { scroll-margin-top: 76px; }
 .section-heading { max-width: 700px; margin-bottom: 32px; }
 .section-heading h2, .page-title h1 { margin-bottom: 10px; color: var(--navy); font-size: clamp(30px, 4vw, 43px); line-height: 1.2; letter-spacing: -.04em; }
 .section-heading p, .page-title p { color: var(--muted); }
 
-.cert-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.cert-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
 .cert-card { position: relative; display: flex; flex-direction: column; min-height: 250px; padding: 26px; border: 2px solid transparent; border-radius: var(--radius); background: white; box-shadow: 0 10px 30px rgba(23,54,75,.07); cursor: pointer; text-align: left; transition: .18s ease; }
 .cert-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
 .cert-card.selected { border-color: var(--mint-dark); background: var(--mint-pale); }
@@ -261,6 +263,31 @@ tbody tr:last-child td { border-bottom: 0; }
 .gradio-chat-close:hover { background: rgba(255,255,255,.24); }
 .gradio-chat-frame { display: block; width: 100%; height: min(620px, calc(100vh - 210px)); min-height: 430px; border: 0; background: #f4f7f6; }
 
+@media (max-width: 1100px) {
+  .cert-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 841px) and (max-height: 900px) {
+  #certificates, #application, #application-lookup { padding-top: 36px; padding-bottom: 36px; }
+  .section-heading { margin-bottom: 20px; }
+  .cert-card { min-height: 190px; padding: 18px; }
+  .cert-rank { margin-bottom: 12px; }
+  .cert-card h3 { font-size: 20px; }
+  .cert-card p { margin-bottom: 12px; }
+  .form-layout, .lookup-layout { gap: 38px; }
+  .panel { padding: 24px; }
+  .field { margin-bottom: 12px; }
+  textarea { min-height: 90px; }
+  .checkbox { padding: 10px 14px; }
+  .form-status { min-height: 22px; margin: 8px 0; }
+  .steps { gap: 10px; margin-top: 20px; }
+}
+
+@media (min-width: 841px) {
+  html.application-page { scroll-snap-type: y mandatory; }
+  .application-page main > section { scroll-snap-align: start; scroll-snap-stop: always; }
+}
+
 @media (max-width: 840px) {
   body { font-size: 16px; }
   .header-inner, .container { width: min(100% - 28px, 1160px); }
@@ -276,6 +303,8 @@ tbody tr:last-child td { border-bottom: 0; }
   .hero-note { padding: 26px; }
   .hero-note li { font-size: 16px; }
   .hero-note { max-width: 500px; }
+  #certificates, #application, #application-lookup { min-height: auto; }
+  .application-page main > section { scroll-margin-top: 66px; }
   .cert-grid { grid-template-columns: 1fr; }
   .cert-card { min-height: 0; }
   .form-copy { position: static; }
