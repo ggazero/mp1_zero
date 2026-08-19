@@ -5,6 +5,8 @@
   const filter = document.querySelector("#certificate-filter");
   const adminAuth = document.querySelector("#admin-auth");
   const adminContent = document.querySelector("#admin-content");
+  const DEMO_ADMIN_PASSWORD = "0000";
+  const ADMIN_UNLOCK_KEY = "dudu-demo-admin-unlocked-v1";
   let applications = [];
   let currentFaqs = [];
 
@@ -122,28 +124,27 @@
     URL.revokeObjectURL(link.href);
   });
 
-  document.querySelector("#admin-login-form").addEventListener("submit", async (event) => {
+  document.querySelector("#admin-login-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const status = document.querySelector("#login-status");
-    status.textContent = "로그인 중입니다…";
-    try {
-      await DuduApi.signIn(document.querySelector("#admin-email").value.trim(), document.querySelector("#admin-password").value);
-      window.location.reload();
-    } catch (error) {
-      status.textContent = error.message;
+    if (document.querySelector("#admin-password").value !== DEMO_ADMIN_PASSWORD) {
+      status.textContent = "비밀번호가 올바르지 않습니다.";
       status.className = "form-status error";
+      return;
     }
+    window.sessionStorage.setItem(ADMIN_UNLOCK_KEY, "true");
+    window.location.reload();
   });
 
   document.querySelector("#admin-signout").addEventListener("click", () => {
+    window.sessionStorage.removeItem(ADMIN_UNLOCK_KEY);
     DuduApi.signOut();
     window.location.reload();
   });
 
   async function init() {
     const configured = DuduApi.isConfigured();
-    const session = DuduApi.getSession();
-    if (configured && !session) {
+    if (window.sessionStorage.getItem(ADMIN_UNLOCK_KEY) !== "true") {
       adminAuth.hidden = false;
       adminContent.hidden = true;
       return;
@@ -152,7 +153,7 @@
     adminContent.hidden = false;
     if (configured) {
       document.querySelector("#storage-notice").hidden = true;
-      document.querySelector("#connection-state").textContent = `Supabase 연결됨 · ${session.user?.email || "관리자"}`;
+      document.querySelector("#connection-state").textContent = "Supabase 연결됨 · 실습 관리자";
       document.querySelector("#admin-signout").hidden = false;
     } else {
       document.querySelector("#connection-state").textContent = "로컬 데모 모드";

@@ -28,14 +28,11 @@
         <p>오늘 들어온 신청을 확인하고, 안내 문구를 수정할 수 있습니다.</p>
       </div>
       <section id="admin-auth" class="panel admin-auth" hidden>
-        <p class="eyebrow">관리자 인증</p>
-        <h2>관리자 계정으로 로그인</h2>
-        <p>Supabase Authentication에 등록한 이메일 계정으로 로그인해 주세요.</p>
+        <p class="eyebrow">실습용 관리자 인증</p>
+        <h2>관리자 비밀번호 입력</h2>
+        <p>실습용 비밀번호 4자리를 입력해 주세요.</p>
         <form id="admin-login-form">
-          <div class="field-grid">
-            <div class="field"><label for="admin-email">이메일</label><input id="admin-email" type="email" autocomplete="username" required></div>
-            <div class="field"><label for="admin-password">비밀번호</label><input id="admin-password" type="password" autocomplete="current-password" required minlength="6"></div>
-          </div>
+          <div class="field"><label for="admin-password">비밀번호</label><input id="admin-password" type="password" inputmode="numeric" autocomplete="current-password" required minlength="4" maxlength="4" pattern="[0-9]{4}"></div>
           <p id="login-status" class="form-status" role="alert"></p>
           <button class="button" type="submit">로그인</button>
         </form>

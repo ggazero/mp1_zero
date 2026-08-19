@@ -80,9 +80,9 @@
 
   async function saveApplication(application) {
     if (!isConfigured()) return DuduStorage.saveApplication(application);
-    const rows = await request("/rest/v1/applications", {
+    await request("/rest/v1/applications", {
       method: "POST",
-      headers: { Prefer: "return=representation" },
+      headers: { Prefer: "return=minimal" },
       body: JSON.stringify({
         id: application.id,
         name: application.name,
@@ -93,7 +93,7 @@
         status: application.status
       })
     });
-    return toApplication(rows[0]);
+    return application;
   }
 
   async function getApplications() {
