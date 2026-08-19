@@ -446,12 +446,21 @@
     applicationBody.innerHTML = '<tr><td class="empty" colspan="11">세 접수 데이터를 불러오는 중입니다…</td></tr>';
     try {
       const result = await DuduAdminData.loadDraft100("../data/draft_100");
-      applications = result.records;
+      let newApplications = [];
+      let newApplicationError = "";
+      try {
+        newApplications = DuduAdminData.normalizeApplications(await DuduApi.getApplications());
+      } catch (error) {
+        newApplicationError = error.message;
+      }
+      const newReceiptNumbers = new Set(newApplications.map((item) => item.receipt_number));
+      applications = [...newApplications, ...result.records.filter((item) => !newReceiptNumbers.has(item.receipt_number))];
       populateFilters();
       renderCertificateStats();
       renderApplications();
-      const countText = `총 ${applications.length}건 · 국가기술자격 ${result.counts["국가기술자격"]}건 · 전문자격 ${result.counts["전문자격"]}건 · 두두보건 ${result.counts["두두보건"]}건`;
-      document.querySelector("#draft-load-status").textContent = result.errors.length ? `${countText} · 로딩 실패: ${result.errors.join(" / ")}` : `${countText}을 정상적으로 불러왔습니다.`;
+      const countText = `통합 총 ${applications.length}건 · 기존 CSV ${result.records.length}건 · 신규 접수 ${newApplications.length}건`;
+      const errors = [...result.errors, ...(newApplicationError ? [`Supabase 신규 접수: ${newApplicationError}`] : [])];
+      document.querySelector("#draft-load-status").textContent = errors.length ? `${countText} · 로딩 실패: ${errors.join(" / ")}` : `${countText}을 정상적으로 불러왔습니다.`;
     } catch (error) {
       applicationBody.innerHTML = `<tr><td class="empty" colspan="11">기존 접수 데이터 통합조회 실패: ${escapeHtml(error.message)}</td></tr>`;
       document.querySelector("#draft-load-status").textContent = `기존 접수 데이터 통합조회 실패: ${error.message}`;

@@ -91,6 +91,9 @@
       ["educationLevel", "최종학력"], ["trainingOrg", "교육기관"], ["trainingCertNo", "교육수료번호"],
       ["trainingCompleteDate", "교육수료일"], ["trainingHours", "교육이수시간"], ["photoVerified", "사진검증상태"],
       ["timeSlot", "시험시간대"], ["feeAmount", "수수료"], ["discountType", "감면유형"]
+    ],
+    supabase: [
+      ["channel", "접수채널"], ["note", "남긴 말씀"]
     ]
   };
 
@@ -135,7 +138,7 @@
 
   function normalizeDate(value) {
     const original = String(value || "").trim();
-    const date = original.split(/\s+/)[0];
+    const date = original.split(/[T\s]+/)[0];
     let parts;
     if (/^\d{4}-\d{2}-\d{2}$/.test(date)) parts = date.split("-");
     else if (/^\d{4}\/\d{2}\/\d{2}$/.test(date)) parts = date.split("/");
@@ -200,6 +203,33 @@
     });
   }
 
+  function normalizeApplications(rows) {
+    return (rows || []).map((application, index) => ({
+      source: "신규 접수",
+      receipt_number: String(application.id || "").trim(),
+      applicant_name: String(application.name || "").trim(),
+      birth_date: "",
+      gender: "",
+      phone: normalizePhone(application.phone),
+      qualification: String(application.certificate || "").trim(),
+      exam_region: "",
+      exam_center: "",
+      exam_date: "",
+      final_fee: "",
+      payment_method: "-",
+      payment_status: "-",
+      application_status: String(application.status || "신규").trim(),
+      applied_at: normalizeDate(application.createdAt),
+      usage_context: String(application.note || application.channel || "웹 접수").trim(),
+      _source_key: "supabase",
+      _row_number: index + 1,
+      _raw: {
+        channel: String(application.channel || "웹").trim(),
+        note: String(application.note || "").trim()
+      }
+    }));
+  }
+
   function validateHeaders(sourceKey, rows) {
     if (!rows.length) throw new Error("데이터 행이 없습니다.");
     const headers = Object.keys(rows[0]);
@@ -236,7 +266,7 @@
     }));
   }
 
-  const api = { FIELD_MAP, SOURCES, parseCsv, normalizeDate, normalizePhone, normalizeRows, loadDraft100, getSourceDetailFields };
+  const api = { FIELD_MAP, SOURCES, parseCsv, normalizeDate, normalizePhone, normalizeRows, normalizeApplications, loadDraft100, getSourceDetailFields };
   root.DuduAdminData = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);

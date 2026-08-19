@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { SOURCES, parseCsv, normalizeRows, loadDraft100, getSourceDetailFields } = require("../js/admin-data.js");
+const { SOURCES, parseCsv, normalizeRows, normalizeApplications, loadDraft100, getSourceDetailFields } = require("../js/admin-data.js");
 
 function readSource(source) {
   const filePath = path.join(__dirname, "..", "data", "draft_100", source.filename.normalize("NFD"));
@@ -37,6 +37,28 @@ test("두두보건 날짜와 연락처만 표시용으로 바꾸고 원본은 �
   assert.equal(sample.payment_method, "가상계좌");
   assert.equal(sample._raw.mobile, "01018576482");
   assert.equal(sample._raw.examDate, "13-10-2026");
+});
+
+test("Supabase 신규 접수를 ADMIN 공통 필드로 변환한다", () => {
+  const [application] = normalizeApplications([{
+    id: "DUDU-20260819-120000-QA",
+    createdAt: "2026-08-19T03:00:00.000Z",
+    name: "테스트",
+    phone: "01012345678",
+    certificate: "한식조리기능사",
+    channel: "웹",
+    note: "오후 연락",
+    status: "신규"
+  }]);
+
+  assert.equal(application.source, "신규 접수");
+  assert.equal(application.receipt_number, "DUDU-20260819-120000-QA");
+  assert.equal(application.applicant_name, "테스트");
+  assert.equal(application.phone, "010-1234-5678");
+  assert.equal(application.qualification, "한식조리기능사");
+  assert.equal(application.applied_at, "2026-08-19");
+  assert.equal(application.application_status, "신규");
+  assert.equal(application._source_key, "supabase");
 });
 
 test("근거 없는 두두보건 성별 1/2는 변환하지 않는다", () => {
