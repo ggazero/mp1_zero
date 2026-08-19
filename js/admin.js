@@ -3,6 +3,8 @@
   const questionBody = document.querySelector("#question-body");
   const search = document.querySelector("#application-search");
   const filter = document.querySelector("#certificate-filter");
+  const sourceFilter = document.querySelector("#source-filter");
+  const statusFilter = document.querySelector("#status-filter");
   const adminAuth = document.querySelector("#admin-auth");
   const adminContent = document.querySelector("#admin-content");
   const DEMO_ADMIN_PASSWORD = "0000";
@@ -13,43 +15,43 @@
   const escapeHtml = (value) => String(value || "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
   const formatDate = (value) => new Intl.DateTimeFormat("ko-KR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
   const localDay = (value) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date(value));
+  const formatFee = (value) => Number.isFinite(value) ? `${new Intl.NumberFormat("ko-KR").format(value)}원` : (value || "-");
+
+  function setFilterOptions(select, label, values) {
+    select.innerHTML = `<option value="">${label}</option>${values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("")}`;
+  }
+
+  function populateFilters() {
+    setFilterOptions(sourceFilter, "모든 출처", [...new Set(applications.map((item) => item.source))]);
+    setFilterOptions(filter, "모든 자격증", [...new Set(applications.map((item) => item.qualification))].sort());
+    setFilterOptions(statusFilter, "모든 접수상태", [...new Set(applications.map((item) => item.application_status))]);
+  }
 
   function renderApplications() {
     const query = search.value.trim().toLowerCase();
     const visible = applications.filter((item) => {
-      const matchesQuery = !query || item.name.toLowerCase().includes(query) || item.phone.includes(query) || item.id.toLowerCase().includes(query);
-      return matchesQuery && (!filter.value || item.certificate === filter.value);
+      const matchesQuery = !query || item.applicant_name.toLowerCase().includes(query) || item.phone.includes(query) || item.receipt_number.toLowerCase().includes(query);
+      return matchesQuery
+        && (!sourceFilter.value || item.source === sourceFilter.value)
+        && (!filter.value || item.qualification === filter.value)
+        && (!statusFilter.value || item.application_status === statusFilter.value);
     });
     applicationBody.innerHTML = visible.length ? visible.map((item) => `
       <tr>
-        <td>${escapeHtml(formatDate(item.createdAt))}</td><td>${escapeHtml(item.id)}</td><td><strong>${escapeHtml(item.name)}</strong></td>
-        <td>${escapeHtml(item.phone)}</td><td>${escapeHtml(item.certificate)}</td>
-        <td><select class="status-select" data-id="${escapeHtml(item.id)}" data-before="${escapeHtml(item.status)}" aria-label="${escapeHtml(item.name)} 상태"><option ${item.status === "신규" ? "selected" : ""}>신규</option><option ${item.status === "확인" ? "selected" : ""}>확인</option><option ${item.status === "완료" ? "selected" : ""}>완료</option></select></td>
-        <td>${escapeHtml(item.note || "-")}</td>
-      </tr>`).join("") : '<tr><td class="empty" colspan="7">조건에 맞는 접수 내역이 없습니다. 접수 화면에서 신청서를 제출해 보세요.</td></tr>';
-    document.querySelectorAll(".status-select").forEach((select) => select.addEventListener("change", async () => {
-      const before = select.dataset.before;
-      select.disabled = true;
-      try {
-        await DuduApi.updateApplication(select.dataset.id, { status: select.value });
-        const target = applications.find((item) => item.id === select.dataset.id);
-        if (target) target.status = select.value;
-        select.dataset.before = select.value;
-      } catch (error) {
-        select.value = before;
-        window.alert(`상태를 저장하지 못했습니다. ${error.message}`);
-      } finally {
-        select.disabled = false;
-      }
-    }));
+        <td><span class="status-pill new">${escapeHtml(item.source)}</span></td>
+        <td>${escapeHtml(item.receipt_number)}</td><td>${escapeHtml(item.applied_at)}</td><td><strong>${escapeHtml(item.applicant_name)}</strong></td>
+        <td>${escapeHtml(item.phone)}</td><td>${escapeHtml(item.qualification)}</td><td>${escapeHtml(item.exam_date)}</td>
+        <td>${escapeHtml(item.exam_center || "-")}</td><td>${escapeHtml(formatFee(item.final_fee))}</td><td>${escapeHtml(item.payment_status)}</td>
+        <td><span class="status-pill ${item.application_status === "접수완료" ? "new" : ""}">${escapeHtml(item.application_status)}</span></td>
+      </tr>`).join("") : '<tr><td class="empty" colspan="11">조건에 맞는 기존 접수 이력이 없습니다.</td></tr>';
     updateStats();
   }
 
   function updateStats() {
     const today = localDay(new Date());
-    document.querySelector("#today-count").textContent = `${applications.filter((item) => localDay(item.createdAt) === today).length}건`;
+    document.querySelector("#today-count").textContent = `${applications.filter((item) => item.applied_at === today).length}건`;
     document.querySelector("#total-count").textContent = `${applications.length}건`;
-    const counts = applications.reduce((acc, item) => ({ ...acc, [item.certificate]: (acc[item.certificate] || 0) + 1 }), {});
+    const counts = applications.reduce((acc, item) => ({ ...acc, [item.qualification]: (acc[item.qualification] || 0) + 1 }), {});
     const popular = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
     document.querySelector("#popular-certificate").textContent = popular ? `${popular[0]} (${popular[1]}건)` : "아직 없음";
   }
@@ -81,7 +83,9 @@
     if (button.dataset.tab === "questions-panel") loadQuestions();
   }));
   search.addEventListener("input", renderApplications);
+  sourceFilter.addEventListener("change", renderApplications);
   filter.addEventListener("change", renderApplications);
+  statusFilter.addEventListener("change", renderApplications);
 
   document.querySelector("#save-faq").addEventListener("click", async () => {
     const status = document.querySelector("#faq-status");
@@ -115,7 +119,7 @@
 
   document.querySelector("#export-csv").addEventListener("click", () => {
     if (!applications.length) return window.alert("내려받을 접수 내역이 없습니다.");
-    const cells = [["접수일시", "접수번호", "이름", "연락처", "자격증", "접수경로", "상태", "비고"], ...applications.map((item) => [item.createdAt, item.id, item.name, item.phone, item.certificate, item.channel, item.status, item.note])];
+    const cells = [["출처", "접수번호", "접수일", "이름", "연락처", "자격증", "시험일", "시험장", "최종결제금액", "결제상태", "접수상태"], ...applications.map((item) => [item.source, item.receipt_number, item.applied_at, item.applicant_name, item.phone, item.qualification, item.exam_date, item.exam_center, item.final_fee, item.payment_status, item.application_status])];
     const csv = cells.map((row) => row.map((cell) => `"${String(cell || "").replace(/"/g, '""')}"`).join(",")).join("\n");
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
@@ -152,21 +156,30 @@
     adminAuth.hidden = true;
     adminContent.hidden = false;
     if (configured) {
-      document.querySelector("#storage-notice").hidden = true;
-      document.querySelector("#connection-state").textContent = "Supabase 연결됨 · 실습 관리자";
+      document.querySelector("#connection-state").textContent = "draft_100 통합 조회 · Supabase 연결 유지";
       document.querySelector("#admin-signout").hidden = false;
     } else {
       document.querySelector("#connection-state").textContent = "로컬 데모 모드";
     }
-    applicationBody.innerHTML = '<tr><td class="empty" colspan="7">접수 내역을 불러오는 중입니다…</td></tr>';
+    applicationBody.innerHTML = '<tr><td class="empty" colspan="11">세 접수 데이터를 불러오는 중입니다…</td></tr>';
     try {
-      [applications, currentFaqs] = await Promise.all([DuduApi.getApplications(), DuduApi.getFaqs(DuduKnowledge.DEFAULT_FAQS)]);
-      currentFaqs = currentFaqs.map((faq) => ({ ...faq, keywords: [...faq.keywords] }));
+      const result = await DuduAdminData.loadDraft100("../data/draft_100");
+      applications = result.records;
+      populateFilters();
       renderApplications();
+      const countText = `총 ${applications.length}건 · 국가기술자격 ${result.counts["국가기술자격"]}건 · 전문자격 ${result.counts["전문자격"]}건 · 두두보건 ${result.counts["두두보건"]}건`;
+      document.querySelector("#draft-load-status").textContent = result.errors.length ? `${countText} · 로딩 실패: ${result.errors.join(" / ")}` : `${countText}을 정상적으로 불러왔습니다.`;
+    } catch (error) {
+      applicationBody.innerHTML = `<tr><td class="empty" colspan="11">draft_100 통합조회 실패: ${escapeHtml(error.message)}</td></tr>`;
+      document.querySelector("#draft-load-status").textContent = `draft_100 통합조회 실패: ${error.message}`;
+    }
+    try {
+      currentFaqs = await DuduApi.getFaqs(DuduKnowledge.DEFAULT_FAQS);
+      currentFaqs = currentFaqs.map((faq) => ({ ...faq, keywords: [...faq.keywords] }));
       renderFaqs();
       await loadQuestions();
     } catch (error) {
-      applicationBody.innerHTML = `<tr><td class="empty" colspan="7">${escapeHtml(error.message)}</td></tr>`;
+      document.querySelector("#faq-status").textContent = error.message;
     }
   }
 

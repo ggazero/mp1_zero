@@ -24,8 +24,8 @@
     <div class="container">
       <div class="page-title">
         <p class="eyebrow">운영 현황</p>
-        <h1>접수와 FAQ를 한곳에서 관리합니다</h1>
-        <p>오늘 들어온 신청을 확인하고, 안내 문구를 수정할 수 있습니다.</p>
+        <h1>세 접수 시스템을 한곳에서 확인합니다</h1>
+        <p>국가기술자격, 전문자격, 두두보건의 기존 접수 이력을 공통 형식으로 조회합니다.</p>
       </div>
       <section id="admin-auth" class="panel admin-auth" hidden>
         <p class="eyebrow">실습용 관리자 인증</p>
@@ -39,7 +39,7 @@
       </section>
 
       <div id="admin-content">
-      <div id="storage-notice" class="local-notice" role="note"><strong>MVP 저장 안내</strong><span>현재 데이터는 이 브라우저에만 저장됩니다. 실제 여러 기기 운영 전 Supabase 연결이 필요합니다.</span></div>
+      <div id="storage-notice" class="local-notice" role="status"><strong>데이터 로딩</strong><span id="draft-load-status">draft_100 데이터를 불러오는 중입니다.</span></div>
       <div class="toolbar admin-session"><span id="connection-state"></span><button id="admin-signout" class="button ghost small" type="button" hidden>로그아웃</button></div>
 
       <section class="dashboard-grid" aria-label="접수 통계">
@@ -57,16 +57,18 @@
       <section id="applications-panel" class="tab-panel" role="tabpanel">
         <div class="toolbar">
           <div class="toolbar-group">
-            <input id="application-search" aria-label="접수 내역 검색" placeholder="이름 또는 연락처 검색">
+            <input id="application-search" aria-label="접수 내역 검색" placeholder="이름, 연락처 또는 접수번호 검색">
+            <select id="source-filter" aria-label="출처 필터"><option value="">모든 출처</option></select>
             <select id="certificate-filter" aria-label="자격증 필터">
-              <option value="">모든 자격증</option><option>한식조리기능사</option><option>요양보호사</option><option>공인중개사</option>
+              <option value="">모든 자격증</option>
             </select>
+            <select id="status-filter" aria-label="접수상태 필터"><option value="">모든 접수상태</option></select>
           </div>
           <button id="export-csv" class="button ghost small" type="button">CSV 내려받기</button>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>접수일시</th><th>접수번호</th><th>이름</th><th>연락처</th><th>자격증</th><th>상태</th><th>비고</th></tr></thead>
+            <thead><tr><th>출처</th><th>접수번호</th><th>접수일</th><th>이름</th><th>연락처</th><th>자격증</th><th>시험일</th><th>시험장</th><th>최종결제금액</th><th>결제상태</th><th>접수상태</th></tr></thead>
             <tbody id="application-body"></tbody>
           </table>
         </div>
@@ -97,6 +99,7 @@
   <script src="../js/config.js"></script>
   <script src="../js/storage.js"></script>
   <script src="../js/api.js"></script>
+  <script src="../js/admin-data.js"></script>
   <script src="../js/admin.js"></script>
   <script>
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
