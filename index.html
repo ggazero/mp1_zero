@@ -28,9 +28,10 @@
         <div>
           <p class="eyebrow">필기 시험 접수 도움</p>
           <h1>자격증 준비,<br>첫 접수부터 든든하게</h1>
-          <p>원하는 자격증 하나를 고르고 연락처를 남겨 주세요. 담당자가 내용을 확인한 뒤 접수 절차를 안내해 드립니다.</p>
+          <p>원하는 자격증 하나를 고르고 연락처를 남겨 주세요. <br>전문가가 복잡한 접수 절차를 도와드립니다.</p>
           <div class="hero-actions">
-            <a class="button" href="#certificates">자격증 고르기</a>
+            <a class="button hero-certificate-button" href="#certificates">자격증 고르기</a>
+            <a class="button hero-lookup-button" href="#application-lookup">접수내용 확인</a>
             <a class="button secondary" href="./chatbot/">먼저 궁금한 점 묻기</a>
           </div>
         </div>
@@ -108,8 +109,8 @@
     <section class="section alt" id="application">
       <div class="container form-layout">
         <div class="form-copy">
-          <p class="eyebrow">접수 도움 신청</p>
-          <h2>담당자가 확인할 정보를 적어 주세요</h2>
+          <p class="eyebrow">새로운 신청</p>
+          <h2>처음 접수 도움을 신청합니다</h2>
           <p>이 신청은 실제 시험 원서접수가 아닙니다. 담당자가 확인 후 연락드려 최종 접수를 도와드립니다.</p>
           <div class="steps" aria-label="신청 후 과정">
             <div class="step"><span class="step-num">1</span><span><strong>신청 접수</strong><br>입력하신 내용을 안전하게 확인합니다.</span></div>
@@ -154,12 +155,69 @@
               <span><strong>개인정보 수집에 동의합니다.</strong><br><span class="field-help">접수 안내를 위해 이름과 연락처를 사용합니다.</span></span>
             </label>
             <p id="form-status" class="form-status" role="alert"></p>
-            <button class="button block" type="submit">접수 도움 신청하기</button>
+            <button class="button block application-submit-button" type="submit">새 접수 신청하기</button>
           </form>
           <div id="success-box" class="success-box" role="status" tabindex="-1">
             <strong>신청이 접수되었습니다.</strong>
-            <p id="success-detail"></p>
-            <button id="new-application" class="button ghost small" type="button">다른 신청 작성하기</button>
+            <p id="success-detail">접수 내용을 아래에서 확인해 주세요.</p>
+            <p class="record-label">접수번호</p>
+            <strong id="success-receipt-number" class="receipt-number"></strong>
+            <dl class="record-grid">
+              <div><dt>이름</dt><dd id="success-name"></dd></div>
+              <div><dt>신청 자격증</dt><dd id="success-certificate"></dd></div>
+              <div><dt>접수일시</dt><dd id="success-created-at"></dd></div>
+            </dl>
+            <p class="record-notice">담당자 문의 시 접수번호를 알려주세요.</p>
+            <p id="success-copy-status" class="copy-status" role="status"></p>
+            <div class="record-actions no-print">
+              <button id="copy-success-id" class="button ghost small" type="button">접수번호 복사</button>
+              <button id="copy-success-content" class="button ghost small" type="button">접수내용 복사</button>
+              <button id="print-success" class="button ghost small" type="button">인쇄하기</button>
+              <button id="new-application" class="button ghost small" type="button">다른 신청 작성하기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section compact lookup-section" id="application-lookup">
+      <div class="container lookup-layout">
+        <div class="section-heading">
+          <p class="eyebrow">기존 신청 조회</p>
+          <h2>신청한 접수내용을 확인합니다</h2>
+          <p>접수번호와 신청할 때 입력한 연락처를 함께 입력해 주세요.</p>
+        </div>
+        <div class="panel lookup-panel">
+          <form id="application-lookup-form" novalidate>
+            <div class="field-grid">
+              <div class="field">
+                <label for="lookup-receipt-number">접수번호</label>
+                <input id="lookup-receipt-number" autocomplete="off" placeholder="예: DUDU-20260819-123456-AB" required>
+              </div>
+              <div class="field">
+                <label for="lookup-phone">신청 연락처</label>
+                <input id="lookup-phone" inputmode="numeric" autocomplete="tel" placeholder="010-1234-5678" required maxlength="13">
+              </div>
+            </div>
+            <button class="button block" type="submit">접수내용 확인</button>
+            <p id="lookup-status" class="form-status" role="alert"></p>
+          </form>
+
+          <div id="lookup-result" class="record-result" role="status" tabindex="-1" hidden>
+            <p class="record-label">접수번호</p>
+            <strong id="lookup-result-id" class="receipt-number"></strong>
+            <dl class="record-grid">
+              <div><dt>이름</dt><dd id="lookup-result-name"></dd></div>
+              <div><dt>신청 자격증</dt><dd id="lookup-result-certificate"></dd></div>
+              <div><dt>접수일시</dt><dd id="lookup-result-date"></dd></div>
+              <div><dt>현재 처리 상태</dt><dd id="lookup-result-status"></dd></div>
+            </dl>
+            <p class="record-notice">담당자 문의 시 접수번호를 알려주세요.</p>
+            <p id="lookup-copy-status" class="copy-status" role="status"></p>
+            <div class="record-actions">
+              <button id="copy-lookup-id" class="button ghost small" type="button">접수번호 복사</button>
+              <button id="copy-lookup-content" class="button ghost small" type="button">접수내용 복사</button>
+            </div>
           </div>
         </div>
       </div>
@@ -207,6 +265,7 @@
   <script src="./js/config.js"></script>
   <script src="./js/storage.js"></script>
   <script src="./js/api.js"></script>
+  <script src="./js/application-record.js"></script>
   <script src="./js/application.js"></script>
   <script src="./js/gradio-widget.js"></script>
   <script>

@@ -2,6 +2,8 @@
 .vercel/
 node_modules/
 npm-debug.log*
+__pycache__/
+*.pyc
 .vercel
 .env*
 supabase/.temp/
@@ -11,3 +13,6 @@ MP1_자료/
 MP1_자료/client-docs.zip
 MP1_자료/client-docs/접수대장.docx
 MP1_자료/client-docs/MP1_발주문서_세트.pdf
+
+# 공개 저장소에 올리지 않는 대량 접수 원본 데이터
+data/real_1000/

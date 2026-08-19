@@ -53,6 +53,7 @@ test("접수페이지 카드와 선택 목록에 자격증 8종이 정확히 표
 });
 
 test("8개 카드를 선택하면 저장 데이터에 해당 자격증명이 들어간다", async () => {
+  global.window = global;
   const cards = CERTIFICATES.map((certificate) => createElement({ dataset: { certificate } }));
   const certificate = createElement();
   const phone = createElement({ value: "010-1234-5678" });
@@ -66,10 +67,11 @@ test("8개 카드를 선택하면 저장 데이터에 해당 자격증명이 들
   const name = createElement({ value: "홍길동" });
   const note = createElement({ value: "카드 선택 테스트" });
   const saved = [];
+  let resetCount = 0;
   const form = createElement({
     elements: { name, note },
     querySelector: () => submitButton,
-    reset() {}
+    reset() { resetCount += 1; }
   });
   const elements = {
     "#application-form": form,
@@ -102,8 +104,14 @@ test("8개 카드를 선택하면 저장 데이터에 해당 자격증명이 들
   }
 
   assert.deepEqual(saved.map((application) => application.certificate), CERTIFICATES);
+  newApplication.listeners.click();
+  assert.equal(resetCount, 1);
+  assert.equal(form.hidden, false);
+  assert.equal(certificate.value, "");
+  assert.equal(successBox.classList.contains("show"), false);
   delete global.document;
   delete global.DuduApi;
+  delete global.window;
 });
 
 test("Supabase 자격증 허용 목록 확장 SQL에 8종이 모두 들어 있다", () => {

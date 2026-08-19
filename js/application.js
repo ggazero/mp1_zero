@@ -57,7 +57,7 @@
     try {
       await DuduApi.saveApplication(application);
       form.hidden = true;
-      document.querySelector("#success-detail").textContent = `${name}님의 ${application.certificate} 신청 번호는 ${application.id}입니다. 담당자 확인 후 연락드리겠습니다.`;
+      if (window.DuduApplicationRecord) window.DuduApplicationRecord.showSuccess(application);
       successBox.classList.add("show");
       successBox.focus();
     } catch (error) {
@@ -73,6 +73,7 @@
     selectCertificate("");
     form.hidden = false;
     successBox.classList.remove("show");
+    if (window.DuduApplicationRecord) window.DuduApplicationRecord.clearSuccess();
     status.textContent = "";
     certificate.focus();
   });

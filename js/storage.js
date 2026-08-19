@@ -35,6 +35,17 @@
     const applications = getApplications().map((item) => item.id === id ? { ...item, ...changes } : item);
     return write(KEYS.applications, applications);
   }
+  function findApplication(id, phone) {
+    const phoneDigits = String(phone || "").replace(/\D/g, "");
+    const item = getApplications().find((application) => (
+      application.id === String(id || "").trim()
+      && String(application.phone || "").replace(/\D/g, "") === phoneDigits
+    ));
+    if (!item || !phoneDigits) return null;
+    const name = String(item.name || "").trim();
+    const maskedName = name.length <= 1 ? "*" : (name.length === 2 ? `${name[0]}*` : `${name[0]}*${name[name.length - 1]}`);
+    return { id: item.id, createdAt: item.createdAt, name: maskedName, certificate: item.certificate, status: item.status };
+  }
   function getFaqs(defaults) { return read(KEYS.faqs, defaults); }
   function saveFaqs(faqs) { return write(KEYS.faqs, faqs); }
   function resetFaqs() {
@@ -56,5 +67,5 @@
     return write(KEYS.questions, questions);
   }
 
-  return { KEYS, getApplications, saveApplication, updateApplication, getFaqs, saveFaqs, resetFaqs, getQuestions, saveQuestion, saveQuestionAnswer };
+  return { KEYS, getApplications, saveApplication, updateApplication, findApplication, getFaqs, saveFaqs, resetFaqs, getQuestions, saveQuestion, saveQuestionAnswer };
 });

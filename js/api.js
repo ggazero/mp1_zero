@@ -113,6 +113,23 @@
     });
   }
 
+  async function findApplication(id, phone) {
+    if (!isConfigured()) return DuduStorage.findApplication(id, phone);
+    const rows = await request("/rest/v1/rpc/lookup_application", {
+      method: "POST",
+      body: JSON.stringify({ p_receipt_number: String(id || "").trim(), p_phone: String(phone || "").trim() })
+    });
+    const row = rows?.[0];
+    if (!row) return null;
+    return {
+      id: row.id,
+      createdAt: row.created_at,
+      name: row.masked_name,
+      certificate: row.certificate,
+      status: row.status
+    };
+  }
+
   async function getFaqs(defaults) {
     if (!isConfigured()) return DuduStorage.getFaqs(defaults);
     const rows = await request("/rest/v1/faq_entries?select=*&order=sort_order.asc");
@@ -183,5 +200,5 @@
     });
   }
 
-  root.DuduApi = { isConfigured, getSession, signIn, signOut, saveApplication, getApplications, updateApplication, getFaqs, saveFaqs, resetFaqs, saveQuestion, getQuestions, saveQuestionAnswer };
+  root.DuduApi = { isConfigured, getSession, signIn, signOut, saveApplication, getApplications, updateApplication, findApplication, getFaqs, saveFaqs, resetFaqs, saveQuestion, getQuestions, saveQuestionAnswer };
 })(window);

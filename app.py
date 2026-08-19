@@ -23,8 +23,8 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "").strip()
 GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 UNKNOWN = (
-    "죄송합니다. 제공된 안내 문서에서 확인되지 않는 내용입니다. "
-    "두두자격지원센터에 문의해 주세요."
+    "죄송합니다. 해당내용은 바로 답변드리기 어렵습니다. "
+    "문의받으실 정보를 남겨주시면 순차적으로 답변해드리겠습니다."
 )
 PRACTICAL = (
     "저희는 필기 시험 접수와 안내만 도와드립니다. "
