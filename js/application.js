@@ -5,6 +5,34 @@
   const status = document.querySelector("#form-status");
   const cards = [...document.querySelectorAll(".cert-card")];
   const successBox = document.querySelector("#success-box");
+  const headerProgress = document.querySelector("#header-progress");
+  let applicationCompleted = false;
+
+  function setApplicationProgress(currentStep, mode = "application") {
+    if (!headerProgress) return;
+    headerProgress.dataset.mode = mode;
+    headerProgress.querySelectorAll(".header-progress-step").forEach((step) => {
+      const stepNumber = Number(step.dataset.step);
+      step.classList.toggle("is-done", stepNumber < currentStep);
+      step.classList.toggle("is-current", stepNumber === currentStep);
+      if (stepNumber === currentStep) step.setAttribute("aria-current", "step");
+      else step.removeAttribute("aria-current");
+    });
+  }
+
+  if (typeof window.IntersectionObserver === "function" && headerProgress) {
+    const stageObserver = new window.IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      if (visible.target.id === "application-lookup") setApplicationProgress(0, "lookup");
+      else if (visible.target.id === "application") setApplicationProgress(applicationCompleted ? 3 : 2);
+      else setApplicationProgress(1);
+    }, { threshold: [0.55] });
+    [".hero", "#certificates", "#application", "#application-lookup"].forEach((selector) => {
+      const section = document.querySelector(selector);
+      if (section) stageObserver.observe(section);
+    });
+  }
 
   function formatPhone(value) {
     const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -20,7 +48,10 @@
       card.classList.toggle("selected", selected);
       card.setAttribute("aria-checked", String(selected));
     });
-    if (shouldScroll) document.querySelector("#application").scrollIntoView({ behavior: "smooth" });
+    if (shouldScroll) {
+      setApplicationProgress(2);
+      document.querySelector("#application").scrollIntoView({ behavior: "smooth" });
+    }
   }
 
   cards.forEach((card) => card.addEventListener("click", () => selectCertificate(card.dataset.certificate, true)));
@@ -59,8 +90,11 @@
       form.hidden = true;
       if (window.DuduApplicationRecord) window.DuduApplicationRecord.showSuccess(application);
       successBox.classList.add("show");
+      applicationCompleted = true;
+      setApplicationProgress(3);
       successBox.focus();
     } catch (error) {
+      setApplicationProgress(2);
       showError(`신청을 저장하지 못했습니다. ${error.message}`, submitButton);
     } finally {
       submitButton.disabled = false;
@@ -70,9 +104,11 @@
 
   document.querySelector("#new-application").addEventListener("click", () => {
     form.reset();
+    applicationCompleted = false;
     selectCertificate("");
     form.hidden = false;
     successBox.classList.remove("show");
+    setApplicationProgress(2);
     if (window.DuduApplicationRecord) window.DuduApplicationRecord.clearSuccess();
     status.textContent = "";
     certificate.focus();

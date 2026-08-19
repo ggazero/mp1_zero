@@ -43,6 +43,19 @@ a { color: inherit; }
 .header-inner { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
 .brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; font-weight: 900; letter-spacing: -0.03em; }
 .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 13px 13px 13px 4px; background: var(--mint); color: white; font-size: 15px; }
+.header-progress { min-width: 330px; margin-left: auto; }
+.header-progress-list { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.header-progress-step { display: flex; align-items: center; gap: 7px; color: #829198; font-size: 13px; white-space: nowrap; }
+.header-progress-step:not(:last-child)::after { content: ""; width: 18px; height: 2px; margin-left: 3px; border-radius: 2px; background: #d6dfe2; }
+.progress-light { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 50%; background: #dfe6e8; color: #6d7e86; font-size: 12px; font-weight: 900; transition: .2s ease; }
+.header-progress-step.is-done { color: var(--mint-dark); }
+.header-progress-step.is-done .progress-light { background: var(--mint); color: var(--navy-deep); }
+.header-progress-step.is-current { color: var(--navy); }
+.header-progress-step.is-current .progress-light { background: var(--amber); color: var(--navy-deep); box-shadow: 0 0 0 5px rgba(240,163,59,.2), 0 0 18px rgba(240,163,59,.55); }
+.header-lookup-state { display: none; align-items: center; justify-content: center; gap: 9px; margin: 0; color: var(--navy); font-size: 14px; }
+.lookup-light { width: 13px; height: 13px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 5px rgba(53,182,159,.18), 0 0 18px rgba(53,182,159,.55); }
+.header-progress[data-mode="lookup"] .header-progress-list { display: none; }
+.header-progress[data-mode="lookup"] .header-lookup-state { display: flex; }
 .nav { display: flex; align-items: center; gap: 8px; }
 .nav a { padding: 9px 14px; border-radius: 999px; color: #405762; font-weight: 700; text-decoration: none; font-size: 15px; }
 .nav a:hover, .nav a[aria-current="page"] { background: var(--navy); color: white; }
@@ -81,8 +94,8 @@ h1 { max-width: 720px; margin-bottom: 20px; font-size: clamp(38px, 5vw, 62px); l
 .section { padding: 78px 0; }
 .section.compact { padding: 48px 0; }
 .section.alt { background: #f8f4eb; }
-#certificates, #application, #application-lookup { min-height: calc(100svh - 76px); display: flex; align-items: center; }
-.application-page main > section { scroll-margin-top: 76px; }
+#certificates, #application, #application-lookup { min-height: 100svh; display: flex; align-items: center; }
+.application-page main > section { scroll-margin-top: 0; }
 .section-heading { max-width: 700px; margin-bottom: 32px; }
 .section-heading h2, .page-title h1 { margin-bottom: 10px; color: var(--navy); font-size: clamp(30px, 4vw, 43px); line-height: 1.2; letter-spacing: -.04em; }
 .section-heading p, .page-title p { color: var(--muted); }
@@ -288,12 +301,26 @@ tbody tr:last-child td { border-bottom: 0; }
   .application-page main > section { scroll-snap-align: start; scroll-snap-stop: always; }
 }
 
+@media (max-width: 1040px) and (min-width: 841px) {
+  .header-inner { gap: 16px; }
+  .brand-name { display: none; }
+  .header-progress { min-width: 300px; }
+  .nav a { padding-inline: 11px; }
+}
+
 @media (max-width: 840px) {
   body { font-size: 16px; }
   .header-inner, .container { width: min(100% - 28px, 1160px); }
   .hero { min-height: calc(100svh - 66px); }
   .header-inner { min-height: 66px; }
   .brand-name { display: none; }
+  .header-inner { gap: 12px; }
+  .header-progress { min-width: 0; }
+  .header-progress-list { gap: 6px; }
+  .header-progress-step { gap: 5px; }
+  .header-progress-step:not(:last-child)::after { width: 8px; }
+  .header-progress-step strong { display: none; }
+  .header-progress-step.is-current strong { display: block; }
   .nav a { padding: 8px 10px; font-size: 14px; }
   .hero-inner, .form-layout, .lookup-layout, .chat-shell { grid-template-columns: 1fr; gap: 30px; }
   .hero-inner { padding: 52px 0; }
