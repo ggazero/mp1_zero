@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="두두자격지원센터 접수 및 FAQ 관리자">
+  <title>관리자 | 두두자격지원센터</title>
+  <link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../"><span class="brand-mark">두두</span><span class="brand-name">두두자격지원센터</span></a>
+      <nav class="nav" aria-label="주요 메뉴">
+        <a href="../" data-short="접수">접수 신청</a>
+        <a href="../chatbot/" data-short="상담">FAQ 상담</a>
+        <a href="./" aria-current="page" data-short="관리">관리자</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="section compact">
+    <div class="container">
+      <div class="page-title">
+        <p class="eyebrow">운영 현황</p>
+        <h1>접수와 FAQ를 한곳에서 관리합니다</h1>
+        <p>오늘 들어온 신청을 확인하고, 안내 문구를 수정할 수 있습니다.</p>
+      </div>
+      <section id="admin-auth" class="panel admin-auth" hidden>
+        <p class="eyebrow">관리자 인증</p>
+        <h2>관리자 계정으로 로그인</h2>
+        <p>Supabase Authentication에 등록한 이메일 계정으로 로그인해 주세요.</p>
+        <form id="admin-login-form">
+          <div class="field-grid">
+            <div class="field"><label for="admin-email">이메일</label><input id="admin-email" type="email" autocomplete="username" required></div>
+            <div class="field"><label for="admin-password">비밀번호</label><input id="admin-password" type="password" autocomplete="current-password" required minlength="6"></div>
+          </div>
+          <p id="login-status" class="form-status" role="alert"></p>
+          <button class="button" type="submit">로그인</button>
+        </form>
+      </section>
+
+      <div id="admin-content">
+      <div id="storage-notice" class="local-notice" role="note"><strong>MVP 저장 안내</strong><span>현재 데이터는 이 브라우저에만 저장됩니다. 실제 여러 기기 운영 전 Supabase 연결이 필요합니다.</span></div>
+      <div class="toolbar admin-session"><span id="connection-state"></span><button id="admin-signout" class="button ghost small" type="button" hidden>로그아웃</button></div>
+
+      <section class="dashboard-grid" aria-label="접수 통계">
+        <div class="stat"><span>오늘 신청</span><strong id="today-count">0건</strong></div>
+        <div class="stat"><span>전체 신청</span><strong id="total-count">0건</strong></div>
+        <div class="stat"><span>가장 많은 자격증</span><strong id="popular-certificate" style="font-size:22px">아직 없음</strong></div>
+      </section>
+
+      <div class="admin-tabs" role="tablist" aria-label="관리 메뉴">
+        <button class="tab-button active" type="button" role="tab" aria-selected="true" aria-controls="applications-panel" data-tab="applications-panel">접수 내역</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="faq-panel" data-tab="faq-panel">FAQ 문서</button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="questions-panel" data-tab="questions-panel">질문 기록</button>
+      </div>
+
+      <section id="applications-panel" class="tab-panel" role="tabpanel">
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <input id="application-search" aria-label="접수 내역 검색" placeholder="이름 또는 연락처 검색">
+            <select id="certificate-filter" aria-label="자격증 필터">
+              <option value="">모든 자격증</option><option>한식조리기능사</option><option>요양보호사</option><option>공인중개사</option>
+            </select>
+          </div>
+          <button id="export-csv" class="button ghost small" type="button">CSV 내려받기</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>접수일시</th><th>접수번호</th><th>이름</th><th>연락처</th><th>자격증</th><th>상태</th><th>비고</th></tr></thead>
+            <tbody id="application-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="faq-panel" class="tab-panel" role="tabpanel" hidden>
+        <div class="toolbar">
+          <p>답변을 저장하면 FAQ 챗봇의 다음 답변부터 반영됩니다.</p>
+          <div class="toolbar-group"><button id="reset-faq" class="button danger small" type="button">기본 문서로 되돌리기</button><button id="save-faq" class="button small" type="button">FAQ 변경 저장</button></div>
+        </div>
+        <p id="faq-status" class="form-status" role="status"></p>
+        <div id="faq-editor-list" class="faq-editor-list"></div>
+      </section>
+
+      <section id="questions-panel" class="tab-panel" role="tabpanel" hidden>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>질문 시각</th><th>질문</th><th>응답 구분</th><th>답변</th></tr></thead>
+            <tbody id="question-body"></tbody>
+          </table>
+        </div>
+      </section>
+      </div>
+    </div>
+  </main>
+  <footer class="footer"><div class="container footer-inner"><strong>두두자격지원센터 관리자</strong><span>1시간 MVP · 브라우저 저장 방식</span></div></footer>
+  <script src="../js/knowledge.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/storage.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/admin.js"></script>
+</body>
+</html>

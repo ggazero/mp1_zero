@@ -1,0 +1,13 @@
+.DS_Store
+.vercel/
+node_modules/
+npm-debug.log*
+.vercel
+.env*
+supabase/.temp/
+
+# 공개 저장소에 포함하지 않는 원본 문서 (예시 개인정보 포함 가능)
+MP1_자료/
+MP1_자료/client-docs.zip
+MP1_자료/client-docs/접수대장.docx
+MP1_자료/client-docs/MP1_발주문서_세트.pdf

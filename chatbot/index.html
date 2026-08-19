@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="두두자격지원센터 필기 시험 FAQ 상담">
+  <title>FAQ 상담 | 두두자격지원센터</title>
+  <link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../"><span class="brand-mark">두두</span><span class="brand-name">두두자격지원센터</span></a>
+      <nav class="nav" aria-label="주요 메뉴">
+        <a href="../" data-short="접수">접수 신청</a>
+        <a href="./" aria-current="page" data-short="상담">FAQ 상담</a>
+        <a href="../admin/" data-short="관리">관리자</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="section compact">
+    <div class="container">
+      <div class="page-title">
+        <p class="eyebrow">문서 근거 안내</p>
+        <h1>궁금한 점을 편하게 물어보세요</h1>
+        <p>응시료, 접수 일정, 준비물을 안내합니다. 확인할 수 없는 내용은 솔직하게 모른다고 답합니다.</p>
+      </div>
+
+      <div class="chat-shell">
+        <section class="chat-card" aria-label="FAQ 챗봇">
+          <div class="chat-top">
+            <span class="bot-avatar" aria-hidden="true">두두</span>
+            <div><strong>두두 안내 도우미</strong><span>필기 시험 문서에서만 답변합니다</span></div>
+          </div>
+          <div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-label="대화 내용">
+            <div class="message bot">안녕하세요. 필기 시험 접수에 관해 궁금한 점을 물어보세요.<span class="message-source">안내 범위: 한식조리기능사 · 요양보호사 · 공인중개사</span></div>
+          </div>
+          <form id="chat-form" class="chat-form">
+            <label class="skip-link" for="question">질문</label>
+            <input id="question" autocomplete="off" placeholder="예: 한식 접수비가 얼마예요?" maxlength="150" required>
+            <button class="button" type="submit">질문 보내기</button>
+          </form>
+        </section>
+
+        <aside class="chat-side">
+          <div class="side-card">
+            <h2>이런 질문을 해보세요</h2>
+            <div class="quick-list">
+              <button class="quick-question" type="button">한식 접수비가 얼마예요?</button>
+              <button class="quick-question" type="button">요양보호사는 언제 접수해요?</button>
+              <button class="quick-question" type="button">공인중개사 접수는 끝났나요?</button>
+              <button class="quick-question" type="button">시험 당일 준비물이 뭔가요?</button>
+            </div>
+            <div class="unknown-rule"><strong>중요 안내</strong><br>실기 시험이나 문서에서 확인되지 않는 내용은 안내하지 않습니다.</div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer"><div class="container footer-inner"><strong>두두자격지원센터</strong><span>답변 기준: 사내 안내 규정 v1</span></div></footer>
+  <script src="../js/knowledge.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/storage.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/chatbot.js"></script>
+</body>
+</html>
