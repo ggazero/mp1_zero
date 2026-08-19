@@ -5,17 +5,30 @@
   const filter = document.querySelector("#certificate-filter");
   const sourceFilter = document.querySelector("#source-filter");
   const statusFilter = document.querySelector("#status-filter");
+  const pageSizeSelect = document.querySelector("#application-page-size");
+  const previousPageButton = document.querySelector("#application-prev-page");
+  const nextPageButton = document.querySelector("#application-next-page");
+  const pageNumbers = document.querySelector("#application-page-numbers");
+  const pageSummary = document.querySelector("#application-page-summary");
+  const certificateStatCards = document.querySelector("#certificate-stat-cards");
   const adminAuth = document.querySelector("#admin-auth");
   const adminContent = document.querySelector("#admin-content");
   const applicationDialog = document.querySelector("#application-dialog");
   const questionDialog = document.querySelector("#question-dialog");
   const questionAnswerForm = document.querySelector("#question-answer-form");
+  const adminSettings = document.querySelector("#admin-settings");
+  const adminSettingsToggle = document.querySelector("#admin-settings-toggle");
+  const adminSettingsMenu = document.querySelector("#admin-settings-menu");
+  const adminHeaderTabs = document.querySelector("#admin-header-tabs");
+  const adminHomeLink = document.querySelector("#admin-home-link");
   const DEMO_ADMIN_PASSWORD = "0000";
   const ADMIN_UNLOCK_KEY = "dudu-demo-admin-unlocked-v1";
   let applications = [];
   let currentFaqs = [];
   let questions = [];
   let activeQuestionId = "";
+  let currentApplicationPage = 1;
+  let applicationPageSize = Number(pageSizeSelect.value) || 5;
 
   const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
   const formatDate = (value) => new Intl.DateTimeFormat("ko-KR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
@@ -67,6 +80,65 @@
     setFilterOptions(statusFilter, "모든 접수상태", [...new Set(applications.map((item) => item.application_status))]);
   }
 
+  function applicationStatusClass(status) {
+    if (status === "접수완료") return "new";
+    if (status.includes("확인 필요") || status === "결제대기") return "attention";
+    if (status === "취소") return "cancelled";
+    return "";
+  }
+
+  function renderCertificateStats() {
+    const counts = applications.reduce((result, item) => {
+      result[item.qualification] = (result[item.qualification] || 0) + 1;
+      return result;
+    }, {});
+    const ordered = Object.entries(counts).sort((first, second) => second[1] - first[1] || first[0].localeCompare(second[0], "ko"));
+    const maximum = ordered[0]?.[1] || 1;
+    certificateStatCards.innerHTML = ordered.map(([certificate, count], index) => {
+      const percentage = Math.round((count / applications.length) * 100);
+      const barWidth = Math.max(8, Math.round((count / maximum) * 100));
+      return `<button class="certificate-stat-card" type="button" data-certificate-stat="${escapeHtml(certificate)}" aria-pressed="false">
+        <span class="certificate-stat-rank">접수 ${index + 1}위</span>
+        <span class="certificate-stat-name">${escapeHtml(certificate)}</span>
+        <strong>${count}건 <small>${percentage}%</small></strong>
+        <span class="certificate-stat-bar" aria-hidden="true"><span style="width:${barWidth}%"></span></span>
+      </button>`;
+    }).join("");
+  }
+
+  function updateCertificateCardSelection() {
+    document.querySelectorAll("[data-certificate-stat]").forEach((card) => {
+      const selected = card.dataset.certificateStat === filter.value;
+      card.classList.toggle("selected", selected);
+      card.setAttribute("aria-pressed", String(selected));
+    });
+  }
+
+  function updateApplicationStats(visible) {
+    document.querySelector("#application-result-count").textContent = `${visible.length}건`;
+    document.querySelector("#application-complete-count").textContent = `${visible.filter(({ item }) => item.application_status === "접수완료").length}건`;
+    document.querySelector("#application-pending-count").textContent = `${visible.filter(({ item }) => item.application_status.includes("확인 필요")).length}건`;
+    document.querySelector("#payment-complete-count").textContent = `${visible.filter(({ item }) => item.payment_status === "완료").length}건`;
+  }
+
+  function renderPagination(totalItems, totalPages, startIndex, endIndex) {
+    const hasItems = totalItems > 0;
+    pageSummary.textContent = hasItems ? `${startIndex + 1}-${endIndex} / 총 ${totalItems}건` : "총 0건";
+    previousPageButton.disabled = !hasItems || currentApplicationPage === 1;
+    nextPageButton.disabled = !hasItems || currentApplicationPage === totalPages;
+    if (!hasItems) {
+      pageNumbers.innerHTML = "";
+      return;
+    }
+
+    let firstPage = Math.max(1, currentApplicationPage - 2);
+    let lastPage = Math.min(totalPages, firstPage + 4);
+    firstPage = Math.max(1, lastPage - 4);
+    pageNumbers.innerHTML = Array.from({ length: lastPage - firstPage + 1 }, (_, offset) => firstPage + offset)
+      .map((page) => `<button class="page-button" type="button" data-application-page="${page}" ${page === currentApplicationPage ? 'aria-current="page"' : ""}>${page}</button>`)
+      .join("");
+  }
+
   function renderApplications() {
     const query = search.value.trim().toLowerCase();
     const visible = applications.map((item, index) => ({ item, index })).filter(({ item }) => {
@@ -76,16 +148,30 @@
         && (!filter.value || item.qualification === filter.value)
         && (!statusFilter.value || item.application_status === statusFilter.value);
     });
-    applicationBody.innerHTML = visible.length ? visible.map(({ item, index }) => `
+    const totalPages = Math.max(1, Math.ceil(visible.length / applicationPageSize));
+    currentApplicationPage = Math.min(currentApplicationPage, totalPages);
+    const startIndex = (currentApplicationPage - 1) * applicationPageSize;
+    const endIndex = Math.min(startIndex + applicationPageSize, visible.length);
+    const pageItems = visible.slice(startIndex, endIndex);
+
+    applicationBody.innerHTML = pageItems.length ? pageItems.map(({ item, index }) => `
       <tr class="clickable-row application-row" data-index="${index}" tabindex="0" aria-label="${escapeHtml(item.applicant_name)} 접수 상세 보기">
-        <td><span class="status-pill new">${escapeHtml(item.source)}</span></td>
+        <td><span class="status-pill ${applicationStatusClass(item.application_status)}">${escapeHtml(item.application_status)}</span></td>
+        <td><span class="status-pill">${escapeHtml(item.source)}</span></td>
         <td>${escapeHtml(item.receipt_number)}</td><td>${escapeHtml(item.applied_at)}</td><td><strong>${escapeHtml(item.applicant_name)}</strong></td>
         <td>${escapeHtml(item.phone)}</td><td>${escapeHtml(item.qualification)}</td><td>${escapeHtml(item.exam_date)}</td>
         <td>${escapeHtml(item.exam_center || "-")}</td><td>${escapeHtml(formatFee(item.final_fee))}</td><td>${escapeHtml(item.payment_status)}</td>
-        <td><span class="status-pill ${item.application_status === "접수완료" ? "new" : ""}">${escapeHtml(item.application_status)}</span></td>
       </tr>`).join("") : '<tr><td class="empty" colspan="11">조건에 맞는 기존 접수 이력이 없습니다.</td></tr>';
     bindClickableRows(".application-row", openApplicationDetail);
+    updateApplicationStats(visible);
+    updateCertificateCardSelection();
+    renderPagination(visible.length, totalPages, startIndex, endIndex);
     updateStats();
+  }
+
+  function resetApplicationPage() {
+    currentApplicationPage = 1;
+    renderApplications();
   }
 
   function updateStats() {
@@ -109,6 +195,13 @@
 
   function questionStatusLabel(item) {
     return ({ auto_answered: "자동답변", unanswered: "미답변", answered: "답변작성완료" })[item.answerStatus] || item.answerStatus;
+  }
+
+  function updateQuestionStats() {
+    document.querySelector("#question-total-count").textContent = `${questions.length}건`;
+    document.querySelector("#question-new-count").textContent = `${questions.filter((item) => item.answerStatus === "unanswered").length}건`;
+    document.querySelector("#question-auto-count").textContent = `${questions.filter((item) => item.answerStatus === "auto_answered").length}건`;
+    document.querySelector("#question-answered-count").textContent = `${questions.filter((item) => item.answerStatus === "answered").length}건`;
   }
 
   function openQuestionDetail(index) {
@@ -141,6 +234,7 @@
     const labels = { answer: "문서 답변", unknown: "모름", restricted: "범위 밖", empty: "빈 질문" };
     questionBody.innerHTML = questions.length ? questions.map((item, index) => `<tr class="clickable-row question-row" data-index="${index}" tabindex="0" aria-label="질문 상세 보기"><td>${escapeHtml(formatDate(item.createdAt))}</td><td><strong>${escapeHtml(item.question)}</strong></td><td><span class="status-pill ${item.kind === "answer" ? "new" : ""}">${escapeHtml(labels[item.kind] || item.kind)}</span></td><td><span class="status-pill ${item.answerStatus !== "unanswered" ? "new" : ""}">${escapeHtml(questionStatusLabel(item))}</span></td></tr>`).join("") : '<tr><td class="empty" colspan="4">아직 챗봇 질문 기록이 없습니다.</td></tr>';
     bindClickableRows(".question-row", openQuestionDetail);
+    updateQuestionStats();
   }
 
   async function loadQuestions() {
@@ -152,15 +246,58 @@
     catch (error) { questionBody.innerHTML = `<tr><td class="empty" colspan="4">${escapeHtml(error.message)}</td></tr>`; }
   }
 
+  function showAdminTab(panelId) {
+    document.querySelectorAll(".tab-button").forEach((item) => {
+      const selected = item.dataset.tab === panelId;
+      item.classList.toggle("active", selected);
+      item.setAttribute("aria-selected", String(selected));
+    });
+    document.querySelectorAll(".tab-panel").forEach((panel) => { panel.hidden = panel.id !== panelId; });
+    if (panelId === "questions-panel") loadQuestions();
+  }
+
   document.querySelectorAll(".tab-button").forEach((button) => button.addEventListener("click", () => {
-    document.querySelectorAll(".tab-button").forEach((item) => { item.classList.toggle("active", item === button); item.setAttribute("aria-selected", String(item === button)); });
-    document.querySelectorAll(".tab-panel").forEach((panel) => { panel.hidden = panel.id !== button.dataset.tab; });
-    if (button.dataset.tab === "questions-panel") loadQuestions();
+    const panelId = button.dataset.tab;
+    showAdminTab(panelId);
+    document.querySelector(`#${panelId}`).scrollIntoView({ behavior: "smooth", block: "start" });
   }));
-  search.addEventListener("input", renderApplications);
-  sourceFilter.addEventListener("change", renderApplications);
-  filter.addEventListener("change", renderApplications);
-  statusFilter.addEventListener("change", renderApplications);
+  certificateStatCards.addEventListener("click", (event) => {
+    const card = event.target.closest("[data-certificate-stat]");
+    if (!card) return;
+    filter.value = card.dataset.certificateStat;
+    showAdminTab("applications-panel");
+    resetApplicationPage();
+    document.querySelector("#applications-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  document.querySelector("#show-all-certificates").addEventListener("click", () => {
+    filter.value = "";
+    showAdminTab("applications-panel");
+    resetApplicationPage();
+    document.querySelector("#applications-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  search.addEventListener("input", resetApplicationPage);
+  sourceFilter.addEventListener("change", resetApplicationPage);
+  filter.addEventListener("change", resetApplicationPage);
+  statusFilter.addEventListener("change", resetApplicationPage);
+  pageSizeSelect.addEventListener("change", () => {
+    applicationPageSize = Number(pageSizeSelect.value) || 5;
+    resetApplicationPage();
+  });
+  previousPageButton.addEventListener("click", () => {
+    if (currentApplicationPage <= 1) return;
+    currentApplicationPage -= 1;
+    renderApplications();
+  });
+  nextPageButton.addEventListener("click", () => {
+    currentApplicationPage += 1;
+    renderApplications();
+  });
+  pageNumbers.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-application-page]");
+    if (!button) return;
+    currentApplicationPage = Number(button.dataset.applicationPage);
+    renderApplications();
+  });
 
   document.querySelectorAll("[data-close-question]").forEach((button) => button.addEventListener("click", () => questionDialog.close()));
 
@@ -232,7 +369,7 @@
 
   document.querySelector("#export-csv").addEventListener("click", () => {
     if (!applications.length) return window.alert("내려받을 접수 내역이 없습니다.");
-    const cells = [["출처", "접수번호", "접수일", "이름", "연락처", "자격증", "시험일", "시험장", "최종결제금액", "결제상태", "접수상태"], ...applications.map((item) => [item.source, item.receipt_number, item.applied_at, item.applicant_name, item.phone, item.qualification, item.exam_date, item.exam_center, item.final_fee, item.payment_status, item.application_status])];
+    const cells = [["접수상태", "출처", "접수번호", "접수일", "이름", "연락처", "자격증", "시험일", "시험장", "최종결제금액", "결제상태"], ...applications.map((item) => [item.application_status, item.source, item.receipt_number, item.applied_at, item.applicant_name, item.phone, item.qualification, item.exam_date, item.exam_center, item.final_fee, item.payment_status])];
     const csv = cells.map((row) => row.map((cell) => `"${String(cell || "").replace(/"/g, '""')}"`).join(",")).join("\n");
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
@@ -253,6 +390,34 @@
     window.location.reload();
   });
 
+  function setAdminSettingsOpen(open) {
+    adminSettingsMenu.hidden = !open;
+    adminSettingsToggle.setAttribute("aria-expanded", String(open));
+    adminSettingsToggle.setAttribute("aria-label", open ? "관리자 메뉴 닫기" : "관리자 메뉴 열기");
+  }
+
+  adminSettingsToggle.addEventListener("click", () => {
+    setAdminSettingsOpen(adminSettingsToggle.getAttribute("aria-expanded") !== "true");
+  });
+  document.addEventListener("click", (event) => {
+    if (!adminSettings.contains(event.target)) setAdminSettingsOpen(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") setAdminSettingsOpen(false);
+  });
+  adminHomeLink.addEventListener("click", () => {
+    window.sessionStorage.removeItem(ADMIN_UNLOCK_KEY);
+  });
+
+  window.addEventListener("pageshow", () => {
+    if (window.sessionStorage.getItem(ADMIN_UNLOCK_KEY) === "true") return;
+    adminSettings.hidden = true;
+    adminHeaderTabs.hidden = true;
+    adminAuth.hidden = false;
+    adminContent.hidden = true;
+    setAdminSettingsOpen(false);
+  });
+
   document.querySelector("#admin-signout").addEventListener("click", () => {
     window.sessionStorage.removeItem(ADMIN_UNLOCK_KEY);
     DuduApi.signOut();
@@ -262,15 +427,19 @@
   async function init() {
     const configured = DuduApi.isConfigured();
     if (window.sessionStorage.getItem(ADMIN_UNLOCK_KEY) !== "true") {
+      adminSettings.hidden = true;
+      adminHeaderTabs.hidden = true;
       adminAuth.hidden = false;
       adminContent.hidden = true;
       return;
     }
     adminAuth.hidden = true;
     adminContent.hidden = false;
+    adminSettings.hidden = false;
+    adminHeaderTabs.hidden = false;
+    document.querySelector("#admin-signout").hidden = false;
     if (configured) {
       document.querySelector("#connection-state").textContent = "통합 접수 데이터 조회 · Supabase 연결됨";
-      document.querySelector("#admin-signout").hidden = false;
     } else {
       document.querySelector("#connection-state").textContent = "오프라인 저장 모드";
     }
@@ -279,6 +448,7 @@
       const result = await DuduAdminData.loadDraft100("../data/draft_100");
       applications = result.records;
       populateFilters();
+      renderCertificateStats();
       renderApplications();
       const countText = `총 ${applications.length}건 · 국가기술자격 ${result.counts["국가기술자격"]}건 · 전문자격 ${result.counts["전문자격"]}건 · 두두보건 ${result.counts["두두보건"]}건`;
       document.querySelector("#draft-load-status").textContent = result.errors.length ? `${countText} · 로딩 실패: ${result.errors.join(" / ")}` : `${countText}을 정상적으로 불러왔습니다.`;
