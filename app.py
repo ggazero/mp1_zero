@@ -4,14 +4,23 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
 from typing import Any, Callable
 
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
+
+
+load_dotenv(".env.local")
 
 BASE_DIR = Path(__file__).resolve().parent
 FAQ_PATH = BASE_DIR / "chatbot_faq.json"
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "").strip()
+GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 UNKNOWN = (
     "죄송합니다. 제공된 안내 문서에서 확인되지 않는 내용입니다. "
@@ -155,6 +164,7 @@ def classify_question(question: str) -> dict[str, Any]:
     return {
         "answer": faq["answer"],
         "kind": "answer",
+        "title": faq.get("title"),
         "source": faq.get("source_section"),
         "score": score,
         "hits": hits,
@@ -165,12 +175,78 @@ def answer_question(question: str) -> str:
     return classify_question(question)["answer"]
 
 
+def get_gemini_client() -> genai.Client:
+    if not GOOGLE_API_KEY:
+        raise RuntimeError(
+            "GOOGLE_API_KEY가 없습니다. 프로젝트 루트의 .env.local 파일에 "
+            "GOOGLE_API_KEY를 설정해 주세요."
+        )
+    return genai.Client(api_key=GOOGLE_API_KEY)
+
+
+def safe_api_error(error: Exception) -> str:
+    message = str(error)
+    if GOOGLE_API_KEY:
+        message = message.replace(GOOGLE_API_KEY, "[API KEY 숨김]")
+    return message
+
+
+def generate_grounded_answer(question: str, result: dict[str, Any]) -> str:
+    """규칙 검사를 통과한 FAQ 답변만 Gemini에 전달한다."""
+    if result.get("kind") != "answer":
+        return result["answer"]
+
+    prompt = f"""사용자 질문:
+{question}
+
+검수된 FAQ 제목:
+{result.get('title', '')}
+
+검수된 답변:
+{result['answer']}
+
+위 검수된 답변에 있는 사실만 사용해 쉽고 짧은 한국어로 답하세요.
+숫자, 날짜, 장소, 조건을 새로 만들거나 덧붙이지 마세요.
+검수된 답변만으로 질문에 답할 수 없다면 정확히 다음 문장만 답하세요:
+{UNKNOWN}
+"""
+
+    try:
+        client = get_gemini_client()
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0,
+                system_instruction=(
+                    "당신은 두두자격지원센터의 필기 접수 안내 도우미입니다. "
+                    "제공된 검수 답변 밖의 정보는 절대 사용하지 마세요."
+                ),
+            ),
+        )
+    except Exception as error:
+        raise RuntimeError(f"Gemini API 호출 실패: {safe_api_error(error)}") from error
+
+    generated = (response.text or "").strip()
+    if not generated:
+        raise RuntimeError("Gemini API 호출은 끝났지만 답변 내용이 비어 있습니다.")
+    return generated
+
+
+def answer_with_gemini(question: str) -> str:
+    result = classify_question(question)
+    if result["kind"] != "answer":
+        return result["answer"]
+    return generate_grounded_answer(question, result)
+
+
 def gradio_reply(message: str, history: list[dict[str, Any]] | None = None) -> str:
     del history
     result = classify_question(message)
-    source = result.get("source")
-    if source and result["kind"] == "answer":
-        return f"{result['answer']}\n\n근거: {source}"
+    if result["kind"] == "answer":
+        generated = generate_grounded_answer(message, result)
+        source = result.get("source")
+        return f"{generated}\n\n근거: {source}" if source else generated
     return result["answer"]
 
 
@@ -242,6 +318,7 @@ def run_tests() -> int:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="두두자격지원센터 Gradio FAQ 챗봇")
     parser.add_argument("--test", action="store_true", help="기본 및 강제 거절 테스트 실행")
+    parser.add_argument("--live-test", action="store_true", help="Gemini API를 실제로 한 번 호출")
     parser.add_argument("--port", type=int, default=7860, help="로컬 실행 포트")
     return parser.parse_args()
 
@@ -250,6 +327,12 @@ def main() -> int:
     args = parse_args()
     if args.test:
         return run_tests()
+    if args.live_test:
+        question = "한식조리기능사 필기 응시료 얼마예요?"
+        print(f"모델: {GEMINI_MODEL}")
+        print(f"질문: {question}")
+        print(f"답변: {answer_with_gemini(question)}")
+        return 0
     demo = build_demo()
     demo.launch(server_name="127.0.0.1", server_port=args.port, show_error=True)
     return 0
