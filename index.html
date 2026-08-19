@@ -14,7 +14,7 @@
       <a class="brand" href="./" aria-label="두두자격지원센터 홈">
         <span class="brand-mark">두두</span><span class="brand-name">두두자격지원센터</span>
       </a>
-      <div id="header-progress" class="header-progress" data-mode="application" aria-label="접수 진행 상태" aria-live="polite">
+      <div id="header-progress" class="header-progress" data-mode="hidden" aria-label="접수 진행 상태" aria-live="polite" aria-hidden="true">
         <ol class="header-progress-list">
           <li class="header-progress-step is-current" data-step="1" aria-current="step"><span class="progress-light">1</span><strong>자격증 선택</strong></li>
           <li class="header-progress-step" data-step="2"><span class="progress-light">2</span><strong>정보 입력</strong></li>
@@ -39,8 +39,8 @@
           <p>원하는 자격증 하나를 고르고 연락처를 남겨 주세요. <br>전문가가 복잡한 접수 절차를 도와드립니다.</p>
           <div class="hero-actions">
             <a class="button hero-certificate-button" href="#certificates">자격증 고르기</a>
-            <a class="button hero-lookup-button" href="#application-lookup">접수내용 확인</a>
-            <a class="button secondary" href="./chatbot/">먼저 궁금한 점 묻기</a>
+            <a class="button hero-lookup-button" href="#application-lookup">접수 확인</a>
+            <a class="button secondary" href="./chatbot/">문의사항</a>
           </div>
         </div>
         <aside class="hero-note" aria-label="접수 순서">
@@ -63,49 +63,49 @@
         </div>
         <div class="cert-grid" role="radiogroup" aria-label="자격증 선택">
           <button class="cert-card" type="button" role="radio" aria-checked="false" data-certificate="한식조리기능사">
-            <span class="cert-rank">1</span>
+            <span class="cert-meta"><span class="cert-category">국가기술</span><span class="cert-priority">우선 안내</span></span>
             <h3>한식조리기능사</h3>
             <p>식당 취업이나 창업을 준비하시는 분</p>
             <span class="tag-row"><span class="tag open">상시 접수</span><span class="tag">필기 14,500원</span></span>
           </button>
+          <button class="cert-card" type="button" role="radio" aria-checked="false" data-certificate="요양보호사">
+            <span class="cert-meta"><span class="cert-category health">보건자격</span><span class="cert-priority">우선 안내</span></span>
+            <h3>요양보호사</h3>
+            <p>요양원이나 재가센터 취업을 준비하시는 분</p>
+            <span class="tag-row"><span class="tag open">상시 시험</span><span class="tag">시험 7일 전까지</span></span>
+          </button>
+          <button class="cert-card" type="button" role="radio" aria-checked="false" data-certificate="공인중개사">
+            <span class="cert-meta"><span class="cert-category professional">전문자격</span><span class="cert-priority">우선 안내</span></span>
+            <h3>공인중개사</h3>
+            <p>부동산 개업과 중개 업무를 준비하시는 분</p>
+            <span class="tag-row"><span class="tag">연 1회</span><span class="tag">1차·2차</span></span>
+          </button>
           <button class="cert-card" type="button" role="radio" aria-checked="false" data-certificate="지게차운전기능사">
-            <span class="cert-rank">2</span>
+            <span class="cert-meta"><span class="cert-category">국가기술</span></span>
             <h3>지게차운전기능사</h3>
             <p>물류창고 취업을 준비하시는 분</p>
             <span class="tag-row"><span class="tag open">상시 접수</span><span class="tag">필기 14,500원</span></span>
           </button>
           <button class="cert-card" type="button" role="radio" aria-checked="false" data-certificate="굴착기운전기능사">
-            <span class="cert-rank">3</span>
+            <span class="cert-meta"><span class="cert-category">국가기술</span></span>
             <h3>굴착기운전기능사</h3>
             <p>건설현장 취업을 준비하시는 분</p>
             <span class="tag-row"><span class="tag open">상시 접수</span><span class="tag">필기 14,500원</span></span>
           </button>
           <button class="cert-card" type="button" role="radio" aria-checked="false" data-certificate="전기기능사">
-            <span class="cert-rank">4</span>
+            <span class="cert-meta"><span class="cert-category">국가기술</span></span>
             <h3>전기기능사</h3>
             <p>시설관리 취업을 준비하시는 분</p>
             <span class="tag-row"><span class="tag">정기 연 4회</span><span class="tag">필기 14,500원</span></span>
           </button>
           <button class="cert-card" type="button" role="radio" aria-checked="false" data-certificate="손해평가사">
-            <span class="cert-rank">5</span>
+            <span class="cert-meta"><span class="cert-category professional">전문자격</span></span>
             <h3>손해평가사</h3>
             <p>농작물 재해 평가 업무를 준비하시는 분</p>
             <span class="tag-row"><span class="tag">연 1회</span><span class="tag">1차·2차</span></span>
           </button>
-          <button class="cert-card" type="button" role="radio" aria-checked="false" data-certificate="공인중개사">
-            <span class="cert-rank">6</span>
-            <h3>공인중개사</h3>
-            <p>부동산 개업과 중개 업무를 준비하시는 분</p>
-            <span class="tag-row"><span class="tag">연 1회</span><span class="tag">1차·2차</span></span>
-          </button>
-          <button class="cert-card" type="button" role="radio" aria-checked="false" data-certificate="요양보호사">
-            <span class="cert-rank">7</span>
-            <h3>요양보호사</h3>
-            <p>요양원이나 재가센터 취업을 준비하시는 분</p>
-            <span class="tag-row"><span class="tag open">상시 시험</span><span class="tag">시험 7일 전까지</span></span>
-          </button>
           <button class="cert-card" type="button" role="radio" aria-checked="false" data-certificate="위생사">
-            <span class="cert-rank">8</span>
+            <span class="cert-meta"><span class="cert-category health">보건자격</span></span>
             <h3>위생사</h3>
             <p>급식소나 위생 업무 취업을 준비하시는 분</p>
             <span class="tag-row"><span class="tag">별도 접수</span><span class="tag">두두보건</span></span>

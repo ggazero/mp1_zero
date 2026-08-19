@@ -11,6 +11,7 @@
   function setApplicationProgress(currentStep, mode = "application") {
     if (!headerProgress) return;
     headerProgress.dataset.mode = mode;
+    headerProgress.setAttribute("aria-hidden", String(mode === "hidden"));
     headerProgress.querySelectorAll(".header-progress-step").forEach((step) => {
       const stepNumber = Number(step.dataset.step);
       step.classList.toggle("is-done", stepNumber < currentStep);
@@ -24,7 +25,8 @@
     const stageObserver = new window.IntersectionObserver((entries) => {
       const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
       if (!visible) return;
-      if (visible.target.id === "application-lookup") setApplicationProgress(0, "lookup");
+      if (visible.target.classList.contains("hero")) setApplicationProgress(0, "hidden");
+      else if (visible.target.id === "application-lookup") setApplicationProgress(0, "lookup");
       else if (visible.target.id === "application") setApplicationProgress(applicationCompleted ? 3 : 2);
       else setApplicationProgress(1);
     }, { threshold: [0.55] });
