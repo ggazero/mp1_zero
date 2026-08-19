@@ -7,15 +7,55 @@
   const statusFilter = document.querySelector("#status-filter");
   const adminAuth = document.querySelector("#admin-auth");
   const adminContent = document.querySelector("#admin-content");
+  const applicationDialog = document.querySelector("#application-dialog");
+  const questionDialog = document.querySelector("#question-dialog");
+  const questionAnswerForm = document.querySelector("#question-answer-form");
   const DEMO_ADMIN_PASSWORD = "0000";
   const ADMIN_UNLOCK_KEY = "dudu-demo-admin-unlocked-v1";
   let applications = [];
   let currentFaqs = [];
+  let questions = [];
+  let activeQuestionId = "";
 
-  const escapeHtml = (value) => String(value || "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
+  const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
   const formatDate = (value) => new Intl.DateTimeFormat("ko-KR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
   const localDay = (value) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date(value));
   const formatFee = (value) => Number.isFinite(value) ? `${new Intl.NumberFormat("ko-KR").format(value)}원` : (value || "-");
+
+  function detailItemsHtml(items) {
+    return items.map((item) => `<dl class="detail-item ${item.wide ? "wide" : ""}"><dt>${escapeHtml(item.label)}</dt><dd>${escapeHtml(item.value || "-")}</dd></dl>`).join("");
+  }
+
+  function bindClickableRows(selector, callback) {
+    document.querySelectorAll(selector).forEach((row) => {
+      const open = () => callback(Number(row.dataset.index));
+      row.addEventListener("click", open);
+      row.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          open();
+        }
+      });
+    });
+  }
+
+  function openApplicationDetail(index) {
+    const item = applications[index];
+    if (!item) return;
+    document.querySelector("#application-dialog-title").textContent = `${item.applicant_name} · ${item.receipt_number}`;
+    document.querySelector("#application-common-detail").innerHTML = detailItemsHtml([
+      { label: "출처", value: item.source }, { label: "접수번호", value: item.receipt_number },
+      { label: "접수일", value: item.applied_at }, { label: "이름", value: item.applicant_name },
+      { label: "생년월일", value: item.birth_date }, { label: "성별", value: item.gender },
+      { label: "연락처", value: item.phone }, { label: "자격증", value: item.qualification },
+      { label: "시험지역", value: item.exam_region || "-" }, { label: "시험장", value: item.exam_center },
+      { label: "시험일", value: item.exam_date }, { label: "최종결제금액", value: formatFee(item.final_fee) },
+      { label: "결제수단", value: item.payment_method }, { label: "결제상태", value: item.payment_status },
+      { label: "접수상태", value: item.application_status }, { label: "사용맥락", value: item.usage_context }
+    ]);
+    document.querySelector("#application-source-detail").innerHTML = detailItemsHtml(DuduAdminData.getSourceDetailFields(item));
+    applicationDialog.showModal();
+  }
 
   function setFilterOptions(select, label, values) {
     select.innerHTML = `<option value="">${label}</option>${values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("")}`;
@@ -29,21 +69,22 @@
 
   function renderApplications() {
     const query = search.value.trim().toLowerCase();
-    const visible = applications.filter((item) => {
+    const visible = applications.map((item, index) => ({ item, index })).filter(({ item }) => {
       const matchesQuery = !query || item.applicant_name.toLowerCase().includes(query) || item.phone.includes(query) || item.receipt_number.toLowerCase().includes(query);
       return matchesQuery
         && (!sourceFilter.value || item.source === sourceFilter.value)
         && (!filter.value || item.qualification === filter.value)
         && (!statusFilter.value || item.application_status === statusFilter.value);
     });
-    applicationBody.innerHTML = visible.length ? visible.map((item) => `
-      <tr>
+    applicationBody.innerHTML = visible.length ? visible.map(({ item, index }) => `
+      <tr class="clickable-row application-row" data-index="${index}" tabindex="0" aria-label="${escapeHtml(item.applicant_name)} 접수 상세 보기">
         <td><span class="status-pill new">${escapeHtml(item.source)}</span></td>
         <td>${escapeHtml(item.receipt_number)}</td><td>${escapeHtml(item.applied_at)}</td><td><strong>${escapeHtml(item.applicant_name)}</strong></td>
         <td>${escapeHtml(item.phone)}</td><td>${escapeHtml(item.qualification)}</td><td>${escapeHtml(item.exam_date)}</td>
         <td>${escapeHtml(item.exam_center || "-")}</td><td>${escapeHtml(formatFee(item.final_fee))}</td><td>${escapeHtml(item.payment_status)}</td>
         <td><span class="status-pill ${item.application_status === "접수완료" ? "new" : ""}">${escapeHtml(item.application_status)}</span></td>
       </tr>`).join("") : '<tr><td class="empty" colspan="11">조건에 맞는 기존 접수 이력이 없습니다.</td></tr>';
+    bindClickableRows(".application-row", openApplicationDetail);
     updateStats();
   }
 
@@ -66,14 +107,48 @@
       </article>`).join("");
   }
 
-  function renderQuestions(questions) {
+  function questionStatusLabel(item) {
+    return ({ auto_answered: "자동답변", unanswered: "미답변", answered: "답변작성완료" })[item.answerStatus] || item.answerStatus;
+  }
+
+  function openQuestionDetail(index) {
+    const item = questions[index];
+    if (!item) return;
+    activeQuestionId = item.id;
+    const typeLabels = { answer: "문서 답변", unknown: "모름", restricted: "범위 밖", empty: "빈 질문" };
+    const contactLabel = item.contactValue ? `${item.contactMethod === "email" ? "이메일" : "문자"} · ${item.contactValue}` : "연락처 없음";
+    document.querySelector("#question-dialog-title").textContent = `${questionStatusLabel(item)} · ${item.id}`;
+    document.querySelector("#question-detail").innerHTML = detailItemsHtml([
+      { label: "질문 시각", value: formatDate(item.createdAt) },
+      { label: "자동응답 구분", value: typeLabels[item.kind] || item.kind },
+      { label: "질문", value: item.question, wide: true },
+      { label: "챗봇 자동응답", value: item.answer, wide: true },
+      { label: "후속 답변 연락처", value: contactLabel },
+      { label: "관리자 처리상태", value: questionStatusLabel(item) },
+      ...(item.adminAnswer ? [{ label: "관리자 답변", value: item.adminAnswer, wide: true }] : []),
+      ...(item.answeredAt ? [{ label: "답변 작성 시각", value: formatDate(item.answeredAt) }] : [])
+    ]);
+    const canAnswer = item.answerStatus === "unanswered";
+    questionAnswerForm.hidden = !canAnswer;
+    document.querySelector("#answered-question-actions").hidden = canAnswer;
+    document.querySelector("#admin-answer").value = item.adminAnswer || "";
+    document.querySelector("#question-answer-status").textContent = item.contactValue ? "답변 저장 후 문자 또는 이메일 앱을 엽니다. 앱에서 최종 전송을 확인해 주세요." : "연락처가 없어 관리자 답변만 저장됩니다.";
+    document.querySelector("#send-question-answer").textContent = item.contactValue ? `답변 저장 후 ${item.contactMethod === "email" ? "메일" : "문자"} 앱 열기` : "답변 저장";
+    questionDialog.showModal();
+  }
+
+  function renderQuestions() {
     const labels = { answer: "문서 답변", unknown: "모름", restricted: "범위 밖", empty: "빈 질문" };
-    questionBody.innerHTML = questions.length ? questions.map((item) => `<tr><td>${escapeHtml(formatDate(item.createdAt))}</td><td><strong>${escapeHtml(item.question)}</strong></td><td><span class="status-pill ${item.kind === "answer" ? "new" : ""}">${escapeHtml(labels[item.kind] || item.kind)}</span></td><td>${escapeHtml(item.answer)}</td></tr>`).join("") : '<tr><td class="empty" colspan="4">아직 챗봇 질문 기록이 없습니다.</td></tr>';
+    questionBody.innerHTML = questions.length ? questions.map((item, index) => `<tr class="clickable-row question-row" data-index="${index}" tabindex="0" aria-label="질문 상세 보기"><td>${escapeHtml(formatDate(item.createdAt))}</td><td><strong>${escapeHtml(item.question)}</strong></td><td><span class="status-pill ${item.kind === "answer" ? "new" : ""}">${escapeHtml(labels[item.kind] || item.kind)}</span></td><td><span class="status-pill ${item.answerStatus !== "unanswered" ? "new" : ""}">${escapeHtml(questionStatusLabel(item))}</span></td></tr>`).join("") : '<tr><td class="empty" colspan="4">아직 챗봇 질문 기록이 없습니다.</td></tr>';
+    bindClickableRows(".question-row", openQuestionDetail);
   }
 
   async function loadQuestions() {
     questionBody.innerHTML = '<tr><td class="empty" colspan="4">질문 기록을 불러오는 중입니다…</td></tr>';
-    try { renderQuestions(await DuduApi.getQuestions()); }
+    try {
+      questions = await DuduApi.getQuestions();
+      renderQuestions();
+    }
     catch (error) { questionBody.innerHTML = `<tr><td class="empty" colspan="4">${escapeHtml(error.message)}</td></tr>`; }
   }
 
@@ -86,6 +161,44 @@
   sourceFilter.addEventListener("change", renderApplications);
   filter.addEventListener("change", renderApplications);
   statusFilter.addEventListener("change", renderApplications);
+
+  document.querySelectorAll("[data-close-question]").forEach((button) => button.addEventListener("click", () => questionDialog.close()));
+
+  questionAnswerForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const item = questions.find((question) => question.id === activeQuestionId);
+    const answer = document.querySelector("#admin-answer").value.trim();
+    const status = document.querySelector("#question-answer-status");
+    if (!item || !answer) return;
+    const submitButton = document.querySelector("#send-question-answer");
+    submitButton.disabled = true;
+    status.textContent = "관리자 답변을 저장하고 있습니다…";
+    status.className = "form-status";
+    try {
+      await DuduApi.saveQuestionAnswer(item.id, answer);
+      item.adminAnswer = answer;
+      item.answerStatus = "answered";
+      item.answeredAt = new Date().toISOString();
+      renderQuestions();
+      if (!item.contactValue) {
+        questionDialog.close();
+        openQuestionDetail(questions.indexOf(item));
+        return;
+      }
+      const body = `문의: ${item.question}\n\n답변: ${answer}`;
+      status.textContent = "답변을 저장했습니다. 열린 앱에서 최종 전송을 확인해 주세요.";
+      const target = item.contactMethod === "email"
+        ? `mailto:${encodeURIComponent(item.contactValue)}?subject=${encodeURIComponent("두두자격지원센터 문의 답변")}&body=${encodeURIComponent(body)}`
+        : `sms:${item.contactValue.replace(/\D/g, "")}?body=${encodeURIComponent(body)}`;
+      questionDialog.close();
+      window.location.href = target;
+    } catch (error) {
+      status.textContent = `답변을 저장하지 못했습니다. ${error.message}`;
+      status.className = "form-status error";
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
 
   document.querySelector("#save-faq").addEventListener("click", async () => {
     const status = document.querySelector("#faq-status");
@@ -156,10 +269,10 @@
     adminAuth.hidden = true;
     adminContent.hidden = false;
     if (configured) {
-      document.querySelector("#connection-state").textContent = "draft_100 통합 조회 · Supabase 연결 유지";
+      document.querySelector("#connection-state").textContent = "통합 접수 데이터 조회 · Supabase 연결됨";
       document.querySelector("#admin-signout").hidden = false;
     } else {
-      document.querySelector("#connection-state").textContent = "로컬 데모 모드";
+      document.querySelector("#connection-state").textContent = "오프라인 저장 모드";
     }
     applicationBody.innerHTML = '<tr><td class="empty" colspan="11">세 접수 데이터를 불러오는 중입니다…</td></tr>';
     try {
@@ -170,8 +283,8 @@
       const countText = `총 ${applications.length}건 · 국가기술자격 ${result.counts["국가기술자격"]}건 · 전문자격 ${result.counts["전문자격"]}건 · 두두보건 ${result.counts["두두보건"]}건`;
       document.querySelector("#draft-load-status").textContent = result.errors.length ? `${countText} · 로딩 실패: ${result.errors.join(" / ")}` : `${countText}을 정상적으로 불러왔습니다.`;
     } catch (error) {
-      applicationBody.innerHTML = `<tr><td class="empty" colspan="11">draft_100 통합조회 실패: ${escapeHtml(error.message)}</td></tr>`;
-      document.querySelector("#draft-load-status").textContent = `draft_100 통합조회 실패: ${error.message}`;
+      applicationBody.innerHTML = `<tr><td class="empty" colspan="11">기존 접수 데이터 통합조회 실패: ${escapeHtml(error.message)}</td></tr>`;
+      document.querySelector("#draft-load-status").textContent = `기존 접수 데이터 통합조회 실패: ${error.message}`;
     }
     try {
       currentFaqs = await DuduApi.getFaqs(DuduKnowledge.DEFAULT_FAQS);

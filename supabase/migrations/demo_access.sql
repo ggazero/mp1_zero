@@ -20,6 +20,10 @@ create policy "demo can update faqs" on public.faq_entries
   for update to anon, authenticated using (true) with check (true);
 
 drop policy if exists "admins can read questions" on public.question_logs;
+drop policy if exists "admins can update questions" on public.question_logs;
 drop policy if exists "demo can read questions" on public.question_logs;
+drop policy if exists "demo can update questions" on public.question_logs;
 create policy "demo can read questions" on public.question_logs
   for select to anon, authenticated using (true);
+create policy "demo can update questions" on public.question_logs
+  for update to anon, authenticated using (true) with check (true);

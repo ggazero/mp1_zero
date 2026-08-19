@@ -138,15 +138,50 @@
     return request("/rest/v1/question_logs", {
       method: "POST",
       headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({ id: item.id, question: item.question, answer: item.answer, kind: item.kind })
+      body: JSON.stringify({
+        id: item.id,
+        question: item.question,
+        answer: item.answer,
+        kind: item.kind,
+        contact_method: item.contactMethod || null,
+        contact_value: item.contactValue || null,
+        answer_status: item.answerStatus || (item.kind === "answer" ? "auto_answered" : "unanswered")
+      })
     });
   }
 
   async function getQuestions() {
-    if (!isConfigured()) return DuduStorage.getQuestions();
+    if (!isConfigured()) return DuduStorage.getQuestions().map((item) => ({
+      ...item,
+      contactMethod: item.contactMethod || "",
+      contactValue: item.contactValue || "",
+      adminAnswer: item.adminAnswer || "",
+      answerStatus: item.answerStatus || (item.kind === "answer" ? "auto_answered" : "unanswered"),
+      answeredAt: item.answeredAt || ""
+    }));
     const rows = await request("/rest/v1/question_logs?select=*&order=created_at.desc&limit=100");
-    return rows.map((row) => ({ id: row.id, question: row.question, answer: row.answer, kind: row.kind, createdAt: row.created_at }));
+    return rows.map((row) => ({
+      id: row.id,
+      question: row.question,
+      answer: row.answer,
+      kind: row.kind,
+      createdAt: row.created_at,
+      contactMethod: row.contact_method || "",
+      contactValue: row.contact_value || "",
+      adminAnswer: row.admin_answer || "",
+      answerStatus: row.answer_status || (row.kind === "answer" ? "auto_answered" : "unanswered"),
+      answeredAt: row.answered_at || ""
+    }));
   }
 
-  root.DuduApi = { isConfigured, getSession, signIn, signOut, saveApplication, getApplications, updateApplication, getFaqs, saveFaqs, resetFaqs, saveQuestion, getQuestions };
+  async function saveQuestionAnswer(id, adminAnswer) {
+    if (!isConfigured()) return DuduStorage.saveQuestionAnswer(id, adminAnswer);
+    return request(`/rest/v1/question_logs?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ admin_answer: adminAnswer, answer_status: "answered", answered_at: new Date().toISOString() })
+    });
+  }
+
+  root.DuduApi = { isConfigured, getSession, signIn, signOut, saveApplication, getApplications, updateApplication, getFaqs, saveFaqs, resetFaqs, saveQuestion, getQuestions, saveQuestionAnswer };
 })(window);

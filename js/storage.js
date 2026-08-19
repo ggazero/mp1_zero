@@ -46,6 +46,15 @@
     questions.unshift(item);
     return write(KEYS.questions, questions.slice(0, 100));
   }
+  function saveQuestionAnswer(id, adminAnswer) {
+    const questions = getQuestions().map((item) => item.id === id ? {
+      ...item,
+      adminAnswer,
+      answerStatus: "answered",
+      answeredAt: new Date().toISOString()
+    } : item);
+    return write(KEYS.questions, questions);
+  }
 
-  return { KEYS, getApplications, saveApplication, updateApplication, getFaqs, saveFaqs, resetFaqs, getQuestions, saveQuestion };
+  return { KEYS, getApplications, saveApplication, updateApplication, getFaqs, saveFaqs, resetFaqs, getQuestions, saveQuestion, saveQuestionAnswer };
 });

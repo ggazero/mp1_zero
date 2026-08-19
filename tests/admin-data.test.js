@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { SOURCES, parseCsv, normalizeRows, loadDraft100 } = require("../js/admin-data.js");
+const { SOURCES, parseCsv, normalizeRows, loadDraft100, getSourceDetailFields } = require("../js/admin-data.js");
 
 function readSource(source) {
   const filePath = path.join(__dirname, "..", "data", "draft_100", source.filename.normalize("NFD"));
@@ -41,6 +41,14 @@ test("두두보건 날짜와 연락처만 표시용으로 바꾸고 원본은 �
 
 test("근거 없는 두두보건 성별 1/2는 변환하지 않는다", () => {
   assert.deepEqual([...new Set(recordsBySource.health.map((item) => item.gender))].sort(), ["1", "2"]);
+});
+
+test("출처별 추가 상세 필드를 한국어 라벨로 제공한다", () => {
+  const professional = getSourceDetailFields(recordsBySource.professional[0]);
+  const health = getSourceDetailFields(recordsBySource.health[0]);
+  assert.equal(professional.find((item) => item.label === "시험과목").value, "부동산학개론;민법및민사특별법");
+  assert.equal(health.find((item) => item.label === "교육기관").value, "제주시니어교육원");
+  assert.equal(professional.some((item) => item.label.includes("_")), false);
 });
 
 test("의미가 불명확한 접수 대기 코드는 확인 필요로 표시한다", () => {

@@ -77,6 +77,23 @@
     health: { active: "접수완료", pending: "확인 필요 (pending)" }
   };
 
+  const DETAIL_FIELDS = {
+    national: [
+      ["최종학력", "최종학력"], ["등급", "등급"], ["시험유형", "시험유형"], ["회차", "회차"],
+      ["시험구분", "시험구분"], ["응시자격유형", "응시자격유형"], ["교시", "교시"], ["수수료", "수수료"],
+      ["감면유형", "감면유형"], ["감면금액", "감면금액"]
+    ],
+    professional: [
+      ["education", "최종학력"], ["exam_year", "시험연도"], ["exam_stage", "시험차수"], ["is_first_pass", "1차 합격 여부"],
+      ["subjects", "시험과목"], ["session_no", "교시"], ["amount", "수수료"], ["discount", "감면유형"]
+    ],
+    health: [
+      ["educationLevel", "최종학력"], ["trainingOrg", "교육기관"], ["trainingCertNo", "교육수료번호"],
+      ["trainingCompleteDate", "교육수료일"], ["trainingHours", "교육이수시간"], ["photoVerified", "사진검증상태"],
+      ["timeSlot", "시험시간대"], ["feeAmount", "수수료"], ["discountType", "감면유형"]
+    ]
+  };
+
   function parseCsv(text) {
     const input = String(text || "").replace(/^\uFEFF/, "");
     const matrix = [];
@@ -176,6 +193,7 @@
         application_status: mappedValue(APPLICATION_STATUSES, sourceKey, get("application_status")),
         applied_at: normalizeDate(get("applied_at")),
         usage_context: get("usage_context"),
+        _source_key: sourceKey,
         _row_number: index + 2,
         _raw: { ...row }
       };
@@ -211,7 +229,14 @@
     };
   }
 
-  const api = { FIELD_MAP, SOURCES, parseCsv, normalizeDate, normalizePhone, normalizeRows, loadDraft100 };
+  function getSourceDetailFields(record) {
+    return (DETAIL_FIELDS[record._source_key] || []).map(([field, label]) => ({
+      label,
+      value: String(record._raw?.[field] ?? "").trim() || "-"
+    }));
+  }
+
+  const api = { FIELD_MAP, SOURCES, parseCsv, normalizeDate, normalizePhone, normalizeRows, loadDraft100, getSourceDetailFields };
   root.DuduAdminData = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);

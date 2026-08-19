@@ -26,7 +26,12 @@ create table if not exists public.question_logs (
   created_at timestamptz not null default now(),
   question text not null,
   answer text not null,
-  kind text not null check (kind in ('answer', 'unknown', 'restricted', 'empty'))
+  kind text not null check (kind in ('answer', 'unknown', 'restricted', 'empty')),
+  contact_method text check (contact_method in ('phone', 'email')),
+  contact_value text,
+  admin_answer text not null default '',
+  answer_status text not null default 'unanswered' check (answer_status in ('auto_answered', 'unanswered', 'answered')),
+  answered_at timestamptz
 );
 
 alter table public.applications enable row level security;

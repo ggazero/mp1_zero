@@ -39,3 +39,6 @@ create policy "admins can update faqs" on public.faq_entries
 drop policy if exists "admins can read questions" on public.question_logs;
 create policy "admins can read questions" on public.question_logs
   for select to authenticated using (public.is_admin());
+drop policy if exists "admins can update questions" on public.question_logs;
+create policy "admins can update questions" on public.question_logs
+  for update to authenticated using (public.is_admin()) with check (public.is_admin());

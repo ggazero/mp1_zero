@@ -37,6 +37,22 @@
           <div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-label="대화 내용">
             <div class="message bot">안녕하세요. 필기 시험 접수에 관해 궁금한 점을 물어보세요.<span class="message-source">안내 범위: 한식조리기능사 · 요양보호사 · 공인중개사</span></div>
           </div>
+          <div class="chat-contact">
+            <div>
+              <label for="contact-method">후속 답변 연락처 <span class="field-help">(선택)</span></label>
+              <select id="contact-method">
+                <option value="">연락처 남기지 않음</option>
+                <option value="phone">문자</option>
+                <option value="email">이메일</option>
+              </select>
+            </div>
+            <div>
+              <label for="contact-value">전화번호 또는 이메일</label>
+              <input id="contact-value" autocomplete="email" placeholder="연락 방법을 먼저 선택해 주세요" disabled>
+            </div>
+            <p id="contact-status" class="form-status" role="alert"></p>
+            <p class="field-help">챗봇이 답하지 못한 질문에만 관리자 후속 답변용으로 저장됩니다.</p>
+          </div>
           <form id="chat-form" class="chat-form">
             <label class="skip-link" for="question">질문</label>
             <input id="question" autocomplete="off" placeholder="예: 한식 접수비가 얼마예요?" maxlength="150" required>
