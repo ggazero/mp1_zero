@@ -7,8 +7,12 @@ import json
 import os
 import re
 import sys
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
+from urllib import error as urllib_error
+from urllib import request as urllib_request
 
 from dotenv import load_dotenv
 from google import genai
@@ -20,6 +24,14 @@ load_dotenv(".env.local")
 BASE_DIR = Path(__file__).resolve().parent
 FAQ_PATH = BASE_DIR / "chatbot_faq.json"
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "").strip()
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
+SUPABASE_PUBLISHABLE_KEY = (
+    os.getenv("SUPABASE_PUBLISHABLE_KEY", "").strip()
+    or os.getenv("SUPABASE_ANON_KEY", "").strip()
+)
+EVENTS_API_URL = os.getenv(
+    "VERCEL_EVENTS_URL", "https://mp1zero-zero.vercel.app/api/events/"
+).strip()
 GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 UNKNOWN = (
@@ -186,9 +198,75 @@ def get_gemini_client() -> genai.Client:
 
 def safe_api_error(error: Exception) -> str:
     message = str(error)
-    if GOOGLE_API_KEY:
-        message = message.replace(GOOGLE_API_KEY, "[API KEY 숨김]")
+    for secret in (GOOGLE_API_KEY, SUPABASE_PUBLISHABLE_KEY):
+        if secret:
+            message = message.replace(secret, "[API KEY 숨김]")
     return message
+
+
+def post_json(url: str, payload: dict[str, Any], headers: dict[str, str] | None = None) -> None:
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    request = urllib_request.Request(
+        url,
+        data=body,
+        method="POST",
+        headers={"Content-Type": "application/json", **(headers or {})},
+    )
+    try:
+        with urllib_request.urlopen(request, timeout=10) as response:
+            if response.status >= 400:
+                raise RuntimeError(f"HTTP {response.status}")
+    except urllib_error.HTTPError as error:
+        detail = error.read().decode("utf-8", errors="replace")[:500]
+        raise RuntimeError(f"HTTP {error.code}: {detail}") from error
+
+
+def save_question_log(question: str, answer: str, kind: str) -> None:
+    """Gradio 질문을 기존 JS 챗봇과 같은 question_logs 형식으로 저장한다."""
+    if not SUPABASE_URL or not SUPABASE_PUBLISHABLE_KEY:
+        raise RuntimeError("SUPABASE_URL 또는 SUPABASE_PUBLISHABLE_KEY가 없습니다.")
+    post_json(
+        f"{SUPABASE_URL}/rest/v1/question_logs",
+        {
+            "id": f"Q-GRADIO-{uuid.uuid4().hex}",
+            "question": str(question or "").strip(),
+            "answer": answer,
+            "kind": kind,
+            "contact_method": None,
+            "contact_value": None,
+            "answer_status": "auto_answered" if kind == "answer" else "unanswered",
+        },
+        {
+            "apikey": SUPABASE_PUBLISHABLE_KEY,
+            "Authorization": f"Bearer {SUPABASE_PUBLISHABLE_KEY}",
+            "Prefer": "return=minimal",
+        },
+    )
+
+
+def send_runtime_event(result_type: str) -> None:
+    if not EVENTS_API_URL:
+        raise RuntimeError("VERCEL_EVENTS_URL이 없습니다.")
+    post_json(
+        EVENTS_API_URL,
+        {
+            "event": "chatbot_question",
+            "result_type": result_type,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        },
+    )
+
+
+def record_gradio_question(question: str, answer: str, kind: str) -> None:
+    """기록 실패를 터미널에 알리되 챗봇 답변은 막지 않는다."""
+    try:
+        save_question_log(question, answer, kind)
+    except Exception as error:
+        print(f"[question_logs] 저장 실패: {safe_api_error(error)}", file=sys.stderr)
+    try:
+        send_runtime_event(kind)
+    except Exception as error:
+        print(f"[vercel-events] 기록 실패: {safe_api_error(error)}", file=sys.stderr)
 
 
 def generate_grounded_answer(question: str, result: dict[str, Any]) -> str:
@@ -245,9 +323,12 @@ def gradio_reply(message: str, history: list[dict[str, Any]] | None = None) -> s
     result = classify_question(message)
     if result["kind"] == "answer":
         generated = generate_grounded_answer(message, result)
+        record_gradio_question(message, generated, result["kind"])
         source = result.get("source")
         return f"{generated}\n\n근거: {source}" if source else generated
-    return result["answer"]
+    answer = result["answer"]
+    record_gradio_question(message, answer, result["kind"])
+    return answer
 
 
 def build_demo() -> Any:

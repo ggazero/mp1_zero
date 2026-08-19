@@ -40,6 +40,11 @@
       answerStatus: result.kind === "answer" ? "auto_answered" : "unanswered"
     };
     try { await DuduApi.saveQuestion(logItem); } catch (_) { /* 답변은 계속 제공 */ }
+    DuduApi.sendEvent({
+      event: "chatbot_question",
+      result_type: result.kind,
+      timestamp: new Date().toISOString()
+    }).catch(() => {});
     const followUp = result.kind !== "answer" && contact.value ? "\n\n관리자 후속 답변 요청이 함께 접수되었습니다." : "";
     window.setTimeout(() => appendMessage(`${result.answer}${followUp}`, "bot", result.source), 180);
     return true;

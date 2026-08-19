@@ -49,6 +49,17 @@
     return text ? JSON.parse(text) : null;
   }
 
+  async function sendEvent(event) {
+    const response = await fetch("/api/events/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(event),
+      keepalive: true
+    });
+    if (!response.ok) throw new Error(`이벤트 기록 실패 (${response.status})`);
+    return response.json();
+  }
+
   async function signIn(email, password) {
     if (!isConfigured()) throw new Error("먼저 Supabase URL과 anon key를 설정해 주세요.");
     const response = await fetch(`${url}/auth/v1/token?grant_type=password`, {
@@ -200,5 +211,5 @@
     });
   }
 
-  root.DuduApi = { isConfigured, getSession, signIn, signOut, saveApplication, getApplications, updateApplication, findApplication, getFaqs, saveFaqs, resetFaqs, saveQuestion, getQuestions, saveQuestionAnswer };
+  root.DuduApi = { isConfigured, getSession, signIn, signOut, sendEvent, saveApplication, getApplications, updateApplication, findApplication, getFaqs, saveFaqs, resetFaqs, saveQuestion, getQuestions, saveQuestionAnswer };
 })(window);

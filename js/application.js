@@ -89,6 +89,13 @@
     submitButton.textContent = "신청을 저장하고 있습니다…";
     try {
       await DuduApi.saveApplication(application);
+      DuduApi.sendEvent({
+        event: "application_submitted",
+        receipt_number: application.id,
+        certificate: application.certificate,
+        result: "success",
+        timestamp: new Date().toISOString()
+      }).catch(() => {});
       form.hidden = true;
       if (window.DuduApplicationRecord) window.DuduApplicationRecord.showSuccess(application);
       successBox.classList.add("show");
@@ -96,6 +103,13 @@
       setApplicationProgress(3);
       successBox.focus();
     } catch (error) {
+      DuduApi.sendEvent({
+        event: "application_submitted",
+        receipt_number: application.id,
+        certificate: application.certificate,
+        result: "failure",
+        timestamp: new Date().toISOString()
+      }).catch(() => {});
       setApplicationProgress(2);
       showError(`신청을 저장하지 못했습니다. ${error.message}`, submitButton);
     } finally {
