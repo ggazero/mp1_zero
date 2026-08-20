@@ -119,6 +119,9 @@
     const lookupStatus = root.document.querySelector("#lookup-status");
     const lookupButton = lookupForm.querySelector('[type="submit"]');
 
+    receiptInput.addEventListener("input", () => {
+      receiptInput.value = receiptInput.value.trim();
+    });
     phoneInput.addEventListener("input", () => { phoneInput.value = formatPhone(phoneInput.value); });
     lookupForm.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -127,17 +130,38 @@
       hideLookupResult();
       const receiptNumber = receiptInput.value.trim();
       const phone = phoneInput.value.trim();
-      if (!receiptNumber || !/^01\d{8,9}$/.test(phone.replace(/\D/g, ""))) {
-        lookupStatus.textContent = LOOKUP_FAILURE;
+      const phoneDigits = phone.replace(/\D/g, "");
+
+      if (!receiptNumber && !phone) {
+        lookupStatus.textContent = "접수번호와 신청 연락처를 입력해주세요.";
         lookupStatus.classList.add("error");
         return;
       }
+
+      if (!receiptNumber) {
+        lookupStatus.textContent = "접수번호를 입력해주세요.";
+        lookupStatus.classList.add("error");
+        return;
+      }
+
+      if (!phone) {
+        lookupStatus.textContent = "신청 연락처를 입력해주세요.";
+        lookupStatus.classList.add("error");
+        return;
+      }
+
+      if (!/^01\d{8,9}$/.test(phoneDigits)) {
+        lookupStatus.textContent = "신청 연락처 형식을 확인해주세요. (예: 010-1234-5678)";
+        lookupStatus.classList.add("error");
+        return;
+      }
+
       lookupButton.disabled = true;
       lookupButton.textContent = "접수내용을 확인하고 있습니다…";
       try {
         const record = await root.DuduApi.findApplication(receiptNumber, phone);
         if (!record) {
-          lookupStatus.textContent = LOOKUP_FAILURE;
+          lookupStatus.textContent = "일치하는 접수 내역을 찾을 수 없습니다. 접수번호와 신청 연락처를 다시 확인해주세요.";
           lookupStatus.classList.add("error");
           return;
         }

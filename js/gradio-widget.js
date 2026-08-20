@@ -2,9 +2,50 @@
   const openButton = document.querySelector("#exam-inquiry-button");
   const panel = document.querySelector("#gradio-chat-panel");
   const closeButton = document.querySelector("#gradio-chat-close");
+  const frame = document.querySelector("#gradio-chat-frame");
   const darkSections = [...(document.querySelectorAll?.(".hero, .lookup-section, .footer") || [])];
 
   if (!openButton || !panel || !closeButton) return;
+
+  let frameReloadCount = 0;
+  const SESSION_KEEP_ALIVE_INTERVAL = 30000;
+
+  function keepSessionAlive() {
+    if (frame?.contentWindow) {
+      try {
+        frame.contentWindow.postMessage({ type: "keep_alive" }, "*");
+      } catch (_) {
+        // Cross-origin, silent fail
+      }
+    }
+  }
+
+  function trackFrameReload() {
+    if (!frame) return;
+    const initialSrc = frame.src;
+    let watchInterval = null;
+
+    const checkReload = () => {
+      if (frame.src !== initialSrc && frame.src) {
+        frameReloadCount++;
+        console.warn(`Gradio iframe reloaded (${frameReloadCount}). Session may have timed out.`);
+      }
+    };
+
+    const cleanup = () => {
+      if (watchInterval) clearInterval(watchInterval);
+    };
+
+    const startWatching = () => {
+      watchInterval = setInterval(checkReload, 5000);
+      if (typeof window !== "undefined") {
+        window.addEventListener("beforeunload", cleanup);
+      }
+    };
+
+    startWatching();
+    return cleanup;
+  }
 
   function updateButtonContrast() {
     if (!openButton.getBoundingClientRect || !darkSections.length) return;
@@ -29,16 +70,27 @@
     else setTimeout(update, 0);
   }
 
+  let sessionKeepAliveInterval = null;
+
   function openChat() {
     panel.hidden = false;
     openButton.setAttribute("aria-expanded", "true");
     closeButton.focus();
+
+    if (!sessionKeepAliveInterval) {
+      sessionKeepAliveInterval = setInterval(keepSessionAlive, SESSION_KEEP_ALIVE_INTERVAL);
+    }
   }
 
   function closeChat() {
     panel.hidden = true;
     openButton.setAttribute("aria-expanded", "false");
     openButton.focus();
+
+    if (sessionKeepAliveInterval) {
+      clearInterval(sessionKeepAliveInterval);
+      sessionKeepAliveInterval = null;
+    }
   }
 
   openButton.addEventListener("click", openChat);
@@ -50,5 +102,7 @@
     window.addEventListener("scroll", scheduleContrastUpdate, { passive: true });
     window.addEventListener("resize", scheduleContrastUpdate);
   }
+
+  trackFrameReload();
   updateButtonContrast();
 })();
