@@ -120,14 +120,40 @@
         <div class="page-title admin-panel-title">
           <p class="eyebrow">FAQ 문서</p>
           <h1>챗봇이 안내할 답변을 관리합니다</h1>
-          <p>검수된 FAQ 답변을 확인하고 필요한 내용을 수정할 수 있습니다.</p>
+          <p>Stage6의 4,705건 FAQ를 검색하고 필요한 답변을 수정할 수 있습니다.</p>
         </div>
         <div class="toolbar">
-          <p>답변을 저장하면 FAQ 챗봇의 다음 답변부터 반영됩니다.</p>
+          <div class="toolbar-group">
+            <input id="stage6-admin-token" type="password" autocomplete="off" aria-label="Stage6 관리 키" placeholder="실행 터미널의 Stage6 관리 키">
+            <input id="faq-search" aria-label="FAQ 검색" placeholder="자격증명, 카테고리, 제목 또는 ID 검색">
+            <button id="search-faq" class="button ghost small" type="button">검색</button>
+          </div>
           <div class="toolbar-group"><button id="reset-faq" class="button danger small" type="button">기본 문서로 되돌리기</button><button id="save-faq" class="button small" type="button">FAQ 변경 저장</button></div>
         </div>
         <p id="faq-status" class="form-status" role="status"></p>
         <div id="faq-editor-list" class="faq-editor-list"></div>
+        <div class="pagination-bar">
+          <p id="faq-page-summary" aria-live="polite">0건</p>
+          <nav class="pagination" aria-label="FAQ 페이지">
+            <button id="faq-prev-page" class="page-button page-move" type="button">이전</button>
+            <button id="faq-next-page" class="page-button page-move" type="button">다음</button>
+          </nav>
+        </div>
+
+        <div class="page-title admin-panel-title">
+          <p class="eyebrow">동의어 관리</p>
+          <h2>줄임말과 통칭을 관리합니다</h2>
+          <p>저장한 동의어는 고객 챗봇의 다음 질문부터 바로 반영됩니다.</p>
+        </div>
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <input id="synonym-short" aria-label="줄임말 또는 통칭" placeholder="예: 전기사">
+            <input id="synonym-full" aria-label="정식 명칭" placeholder="예: 전기기능사">
+            <button id="add-synonym" class="button small" type="button">동의어 추가</button>
+          </div>
+        </div>
+        <p id="synonym-status" class="form-status" role="status"></p>
+        <div id="synonym-list" class="faq-editor-list"></div>
       </section>
 
       <section id="questions-panel" class="tab-panel" role="tabpanel" hidden>

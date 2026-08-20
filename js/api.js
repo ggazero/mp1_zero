@@ -2,6 +2,7 @@
   const config = root.DUDU_CONFIG || {};
   const url = String(config.SUPABASE_URL || "").replace(/\/$/, "");
   const anonKey = String(config.SUPABASE_ANON_KEY || "");
+  const stage6Url = String(config.STAGE6_API_URL || "").replace(/\/$/, "");
   const SESSION_KEY = "dudu-admin-session-v1";
 
   function isConfigured() {
@@ -58,6 +59,55 @@
     });
     if (!response.ok) throw new Error(`이벤트 기록 실패 (${response.status})`);
     return response.json();
+  }
+
+  async function stage6Request(apiName, data = []) {
+    if (!stage6Url) throw new Error("Stage6 챗봇 주소가 설정되지 않았습니다.");
+    const submit = await fetch(`${stage6Url}/gradio_api/call/${apiName}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data })
+    });
+    if (!submit.ok) throw new Error(`Stage6 요청 실패 (${submit.status})`);
+    const { event_id: eventId } = await submit.json();
+    if (!eventId) throw new Error("Stage6 작업 번호를 받지 못했습니다.");
+
+    const result = await fetch(`${stage6Url}/gradio_api/call/${apiName}/${eventId}`);
+    if (!result.ok) throw new Error(`Stage6 결과 조회 실패 (${result.status})`);
+    const body = await result.text();
+    let eventType = "";
+    for (const line of body.split("\n")) {
+      if (line.startsWith("event: ")) eventType = line.slice(7);
+      if (!line.startsWith("data: ")) continue;
+      const payload = JSON.parse(line.slice(6));
+      if (eventType === "error") throw new Error(String(payload || "Stage6 요청을 처리하지 못했습니다."));
+      if (eventType === "complete") return payload[0];
+    }
+    throw new Error("Stage6 응답을 읽지 못했습니다.");
+  }
+
+  function searchStage6Faqs(token, query = "", page = 1) {
+    return stage6Request("admin_faq_search", [token, query, page]);
+  }
+
+  function saveStage6Faqs(token, updates) {
+    return stage6Request("admin_faq_update", [token, updates]);
+  }
+
+  function resetStage6Faqs(token) {
+    return stage6Request("admin_faq_reset", [token]);
+  }
+
+  function getStage6Synonyms(token) {
+    return stage6Request("admin_synonym_list", [token]);
+  }
+
+  function addStage6Synonym(token, short, full) {
+    return stage6Request("admin_synonym_add", [token, short, full]);
+  }
+
+  function deleteStage6Synonym(token, short) {
+    return stage6Request("admin_synonym_delete", [token, short]);
   }
 
   async function signIn(email, password) {
@@ -211,5 +261,11 @@
     });
   }
 
-  root.DuduApi = { isConfigured, getSession, signIn, signOut, sendEvent, saveApplication, getApplications, updateApplication, findApplication, getFaqs, saveFaqs, resetFaqs, saveQuestion, getQuestions, saveQuestionAnswer };
+  root.DuduApi = {
+    isConfigured, getSession, signIn, signOut, sendEvent,
+    saveApplication, getApplications, updateApplication, findApplication,
+    getFaqs, saveFaqs, resetFaqs, saveQuestion, getQuestions, saveQuestionAnswer,
+    searchStage6Faqs, saveStage6Faqs, resetStage6Faqs,
+    getStage6Synonyms, addStage6Synonym, deleteStage6Synonym
+  };
 })(window);
