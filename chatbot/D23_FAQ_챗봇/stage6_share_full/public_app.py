@@ -125,11 +125,8 @@ def remove_synonym(token, short):
 
 demo = gr.ChatInterface(
     fn=chat,
-    title="두두자격지원센터 자격증 시험 FAQ",
-    description=(
-        f"{rag.get_faq_count():,}건의 FAQ를 바탕으로 안내합니다. "
-        "정확한 답변을 위해 자격증명을 함께 입력해 주세요."
-    ),
+    title="",
+    description="",
     examples=[
         "한식조리기능사 시험비가 얼마예요?",
         "지게차 접수는 어디서 해요?",

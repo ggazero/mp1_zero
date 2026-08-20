@@ -72,6 +72,25 @@
 
   let sessionKeepAliveInterval = null;
 
+  function injectFrameStyles() {
+    if (!frame?.contentDocument) return;
+    try {
+      const style = frame.contentDocument.createElement("style");
+      style.textContent = `
+        * { font-size: 1.1em !important; }
+        button { min-height: 48px !important; padding: 12px 20px !important; font-size: 18px !important; }
+        input, textarea, select { min-height: 48px !important; padding: 12px !important; font-size: 18px !important; }
+        .message-wrap { padding: 12px !important; }
+        .chat-message { padding: 12px !important; font-size: 18px !important; }
+        .textbox { font-size: 18px !important; }
+      `;
+      frame.contentDocument.head.appendChild(style);
+    } catch (_) {
+      // Cross-origin, retry after load
+      setTimeout(injectFrameStyles, 1000);
+    }
+  }
+
   function openChat() {
     panel.hidden = false;
     openButton.setAttribute("aria-expanded", "true");
@@ -80,6 +99,8 @@
     if (!sessionKeepAliveInterval) {
       sessionKeepAliveInterval = setInterval(keepSessionAlive, SESSION_KEEP_ALIVE_INTERVAL);
     }
+
+    setTimeout(injectFrameStyles, 500);
   }
 
   function closeChat() {

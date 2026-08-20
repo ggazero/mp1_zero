@@ -23,7 +23,10 @@
   const adminHomeLink = document.querySelector("#admin-home-link");
   const DEMO_ADMIN_PASSWORD = "0000";
   const ADMIN_UNLOCK_KEY = "dudu-demo-admin-unlocked-v1";
+  let FAQ_PAGE_SIZE = 10;
+  let QUESTION_PAGE_SIZE = 10;
   let applications = [];
+  let allFaqs = [];
   let currentFaqs = [];
   let currentFaqPage = 1;
   let currentFaqPages = 1;
@@ -31,6 +34,11 @@
   let currentFaqQuery = "";
   let synonyms = [];
   let questions = [];
+  let allQuestions = [];
+  let currentQuestions = [];
+  let currentQuestionPage = 1;
+  let currentQuestionPages = 1;
+  let currentQuestionTotal = 0;
   let activeQuestionId = "";
   let currentApplicationPage = 1;
   let applicationPageSize = Number(pageSizeSelect.value) || 5;
@@ -188,6 +196,35 @@
     document.querySelector("#popular-certificate").textContent = popular ? `${popular[0]} (${popular[1]}건)` : "아직 없음";
   }
 
+  function renderFaqPageNumbers() {
+    const pageNumbersContainer = document.querySelector("#faq-page-numbers");
+    if (!pageNumbersContainer) return;
+
+    const maxPages = Math.min(currentFaqPages, 5);
+    let startPage = Math.max(1, currentFaqPage - 2);
+    let endPage = Math.min(currentFaqPages, startPage + 4);
+    if (endPage - startPage + 1 < maxPages) {
+      startPage = Math.max(1, endPage - 4);
+    }
+
+    let html = "";
+    for (let i = startPage; i <= endPage; i++) {
+      const isActive = i === currentFaqPage;
+      html += `<button class="page-button ${isActive ? 'active' : ''}" type="button" data-faq-page="${i}">${i}</button>`;
+    }
+    pageNumbersContainer.innerHTML = html;
+
+    document.querySelectorAll("[data-faq-page]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const page = Number(btn.dataset.faqPage);
+        if (page && page !== currentFaqPage) {
+          currentFaqPage = page;
+          loadStage6Faqs();
+        }
+      });
+    });
+  }
+
   function renderFaqs() {
     document.querySelector("#faq-editor-list").innerHTML = currentFaqs.map((faq, index) => `
       <article class="faq-editor">
@@ -196,9 +233,10 @@
         <textarea id="faq-${index}" data-faq-index="${index}" data-faq-id="${escapeHtml(faq.id)}" maxlength="1000">${escapeHtml(faq.reply)}</textarea>
         <p class="field-help">FAQ ID: ${escapeHtml(faq.id)} · 대표 질문: ${escapeHtml(faq.body)}</p>
       </article>`).join("");
-    document.querySelector("#faq-page-summary").textContent = `${currentFaqTotal.toLocaleString("ko-KR")}건 · ${currentFaqPage}/${currentFaqPages}페이지`;
+    document.querySelector("#faq-page-summary").textContent = `${currentFaqTotal.toLocaleString("ko-KR")}건`;
     document.querySelector("#faq-prev-page").disabled = currentFaqPage <= 1;
     document.querySelector("#faq-next-page").disabled = currentFaqPage >= currentFaqPages;
+    renderFaqPageNumbers();
   }
 
   function stage6AdminToken() {
@@ -208,12 +246,50 @@
   }
 
   async function loadStage6Faqs(page = currentFaqPage) {
-    const result = await DuduApi.searchStage6Faqs(stage6AdminToken(), currentFaqQuery, page);
-    currentFaqs = result.items || [];
-    currentFaqPage = Number(result.page) || 1;
-    currentFaqPages = Number(result.pages) || 1;
-    currentFaqTotal = Number(result.total) || 0;
-    renderFaqs();
+    try {
+      const token = document.querySelector("#stage6-admin-token").value.trim();
+      if (token) {
+        const result = await DuduApi.searchStage6Faqs(token, currentFaqQuery, page);
+        if (result && result.items) {
+          currentFaqs = result.items || [];
+          currentFaqPage = Number(result.page) || 1;
+          currentFaqPages = Number(result.pages) || 1;
+          currentFaqTotal = Number(result.total) || 0;
+          renderFaqs();
+          return;
+        }
+      }
+    } catch (_) {}
+
+    // Fallback: Supabase FAQ 로드
+    try {
+      if (allFaqs.length === 0) {
+        const faqs = await DuduApi.getFaqs([]);
+        allFaqs = (faqs || []).map(f => ({
+          id: f.id,
+          cert: "FAQ",
+          category: f.category,
+          title: f.title,
+          body: f.answer,
+          reply: f.answer,
+          text: f.answer
+        }));
+      }
+
+      currentFaqTotal = allFaqs.length;
+      currentFaqPages = Math.ceil(currentFaqTotal / FAQ_PAGE_SIZE) || 1;
+      page = Math.min(Math.max(1, page), currentFaqPages);
+      currentFaqPage = page;
+
+      const startIdx = (page - 1) * FAQ_PAGE_SIZE;
+      const endIdx = startIdx + FAQ_PAGE_SIZE;
+      currentFaqs = allFaqs.slice(startIdx, endIdx);
+
+      renderFaqs();
+    } catch (_) {
+      currentFaqs = [];
+      renderFaqs();
+    }
   }
 
   function renderSynonyms() {
@@ -227,9 +303,16 @@
   }
 
   async function loadStage6Synonyms() {
-    const result = await DuduApi.getStage6Synonyms(stage6AdminToken());
-    synonyms = result.items || [];
-    renderSynonyms();
+    try {
+      const token = document.querySelector("#stage6-admin-token").value.trim();
+      if (!token) return;
+      const result = await DuduApi.getStage6Synonyms(token);
+      synonyms = result.items || [];
+      renderSynonyms();
+    } catch (_) {
+      synonyms = [];
+      renderSynonyms();
+    }
   }
 
   function questionStatusLabel(item) {
@@ -269,17 +352,63 @@
     questionDialog.showModal();
   }
 
+  function renderQuestionPageNumbers() {
+    const pageNumbersContainer = document.querySelector("#question-page-numbers");
+    if (!pageNumbersContainer) return;
+
+    const maxPages = Math.min(currentQuestionPages, 5);
+    let startPage = Math.max(1, currentQuestionPage - 2);
+    let endPage = Math.min(currentQuestionPages, startPage + 4);
+    if (endPage - startPage + 1 < maxPages) {
+      startPage = Math.max(1, endPage - 4);
+    }
+
+    let html = "";
+    for (let i = startPage; i <= endPage; i++) {
+      const isActive = i === currentQuestionPage;
+      html += `<button class="page-button ${isActive ? 'active' : ''}" type="button" data-question-page="${i}">${i}</button>`;
+    }
+    pageNumbersContainer.innerHTML = html;
+
+    document.querySelectorAll("[data-question-page]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const page = Number(btn.dataset.questionPage);
+        if (page && page !== currentQuestionPage) {
+          currentQuestionPage = page;
+          renderQuestions();
+        }
+      });
+    });
+  }
+
   function renderQuestions() {
     const labels = { answer: "문서 답변", unknown: "모름", restricted: "범위 밖", empty: "빈 질문" };
-    questionBody.innerHTML = questions.length ? questions.map((item, index) => `<tr class="clickable-row question-row" data-index="${index}" tabindex="0" aria-label="질문 상세 보기"><td>${escapeHtml(formatDate(item.createdAt))}</td><td><strong>${escapeHtml(item.question)}</strong></td><td><span class="status-pill ${item.kind === "answer" ? "new" : ""}">${escapeHtml(labels[item.kind] || item.kind)}</span></td><td><span class="status-pill ${item.answerStatus !== "unanswered" ? "new" : ""}">${escapeHtml(questionStatusLabel(item))}</span></td></tr>`).join("") : '<tr><td class="empty" colspan="4">아직 챗봇 질문 기록이 없습니다.</td></tr>';
-    bindClickableRows(".question-row", openQuestionDetail);
+    currentQuestionTotal = allQuestions.length;
+    currentQuestionPages = Math.ceil(currentQuestionTotal / QUESTION_PAGE_SIZE) || 1;
+    const startIdx = (currentQuestionPage - 1) * QUESTION_PAGE_SIZE;
+    const endIdx = startIdx + QUESTION_PAGE_SIZE;
+    currentQuestions = allQuestions.slice(startIdx, endIdx);
+
+    questionBody.innerHTML = currentQuestions.length ? currentQuestions.map((item, pageIndex) => {
+      const globalIndex = startIdx + pageIndex;
+      return `<tr class="clickable-row question-row" data-index="${globalIndex}" tabindex="0" aria-label="질문 상세 보기"><td>${escapeHtml(formatDate(item.createdAt))}</td><td><strong>${escapeHtml(item.question)}</strong></td><td><span class="status-pill ${item.kind === "answer" ? "new" : ""}">${escapeHtml(labels[item.kind] || item.kind)}</span></td><td><span class="status-pill ${item.answerStatus !== "unanswered" ? "new" : ""}">${escapeHtml(questionStatusLabel(item))}</span></td></tr>`;
+    }).join("") : '<tr><td class="empty" colspan="4">아직 챗봇 질문 기록이 없습니다.</td></tr>';
+    bindClickableRows(".question-row", (pageIndex) => openQuestionDetail(allQuestions.indexOf(currentQuestions[pageIndex])));
+
+    document.querySelector("#question-page-summary").textContent = `${currentQuestionTotal.toLocaleString("ko-KR")}건`;
+    document.querySelector("#question-prev-page").disabled = currentQuestionPage <= 1;
+    document.querySelector("#question-next-page").disabled = currentQuestionPage >= currentQuestionPages;
+    renderQuestionPageNumbers();
+
     updateQuestionStats();
   }
 
   async function loadQuestions() {
     questionBody.innerHTML = '<tr><td class="empty" colspan="4">질문 기록을 불러오는 중입니다…</td></tr>';
     try {
-      questions = await DuduApi.getQuestions();
+      allQuestions = await DuduApi.getQuestions();
+      questions = allQuestions;
+      currentQuestionPage = 1;
       renderQuestions();
     }
     catch (error) { questionBody.innerHTML = `<tr><td class="empty" colspan="4">${escapeHtml(error.message)}</td></tr>`; }
@@ -292,6 +421,12 @@
       item.setAttribute("aria-selected", String(selected));
     });
     document.querySelectorAll(".tab-panel").forEach((panel) => { panel.hidden = panel.id !== panelId; });
+    if (panelId === "faq-panel" && allFaqs.length === 0) {
+      document.querySelector("#faq-status").textContent = "FAQ를 불러오는 중입니다…";
+      loadStage6Faqs().catch(() => {
+        document.querySelector("#faq-status").textContent = "";
+      });
+    }
     if (panelId === "questions-panel") loadQuestions();
   }
 
@@ -340,6 +475,22 @@
 
   document.querySelectorAll("[data-close-question]").forEach((button) => button.addEventListener("click", () => questionDialog.close()));
 
+  document.querySelector("#question-page-size").addEventListener("change", (e) => {
+    QUESTION_PAGE_SIZE = Number(e.target.value);
+    currentQuestionPage = 1;
+    renderQuestions();
+  });
+  document.querySelector("#question-prev-page").addEventListener("click", () => {
+    if (currentQuestionPage <= 1) return;
+    currentQuestionPage -= 1;
+    renderQuestions();
+  });
+  document.querySelector("#question-next-page").addEventListener("click", () => {
+    if (currentQuestionPage >= currentQuestionPages) return;
+    currentQuestionPage += 1;
+    renderQuestions();
+  });
+
   questionAnswerForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const item = questions.find((question) => question.id === activeQuestionId);
@@ -378,6 +529,12 @@
 
   document.querySelector("#save-faq").addEventListener("click", async () => {
     const status = document.querySelector("#faq-status");
+    const token = document.querySelector("#stage6-admin-token").value.trim();
+    if (!token) {
+      status.textContent = "Stage6 관리 키를 입력해 주세요.";
+      status.className = "form-status error";
+      return;
+    }
     const updates = [...document.querySelectorAll("[data-faq-index]")].map((textarea) => ({
       id: textarea.dataset.faqId,
       reply: textarea.value.trim()
@@ -388,7 +545,7 @@
       return;
     }
     try {
-      const result = await DuduApi.saveStage6Faqs(stage6AdminToken(), updates);
+      const result = await DuduApi.saveStage6Faqs(token, updates);
       currentFaqs.forEach((faq, index) => { faq.reply = updates[index].reply; });
       status.textContent = `${result.updated}건을 저장했습니다. 고객 챗봇의 다음 답변부터 반영됩니다.`;
       status.className = "form-status";
@@ -399,9 +556,14 @@
   });
 
   document.querySelector("#reset-faq").addEventListener("click", async () => {
+    const token = document.querySelector("#stage6-admin-token").value.trim();
+    if (!token) {
+      document.querySelector("#faq-status").textContent = "Stage6 관리 키를 입력해 주세요.";
+      return;
+    }
     if (!window.confirm("실행 중 변경한 FAQ 답변을 원본 4,705건으로 되돌릴까요?")) return;
     try {
-      await DuduApi.resetStage6Faqs(stage6AdminToken());
+      await DuduApi.resetStage6Faqs(token);
       await loadStage6Faqs();
       document.querySelector("#faq-status").textContent = "기본 FAQ 문서로 되돌렸습니다.";
     } catch (error) {
@@ -422,33 +584,54 @@
   });
   document.querySelector("#faq-prev-page").addEventListener("click", () => loadStage6Faqs(currentFaqPage - 1));
   document.querySelector("#faq-next-page").addEventListener("click", () => loadStage6Faqs(currentFaqPage + 1));
+  document.querySelector("#faq-page-size").addEventListener("change", (e) => {
+    FAQ_PAGE_SIZE = Number(e.target.value);
+    allFaqs = [];
+    loadStage6Faqs(1);
+  });
 
   document.querySelector("#add-synonym").addEventListener("click", async () => {
     const shortInput = document.querySelector("#synonym-short");
     const fullInput = document.querySelector("#synonym-full");
     const status = document.querySelector("#synonym-status");
+    const token = document.querySelector("#stage6-admin-token").value.trim();
+    if (!token) {
+      status.textContent = "Stage6 관리 키를 입력해 주세요.";
+      status.className = "form-status error";
+      return;
+    }
     try {
-      const result = await DuduApi.addStage6Synonym(stage6AdminToken(), shortInput.value, fullInput.value);
+      const result = await DuduApi.addStage6Synonym(token, shortInput.value, fullInput.value);
       synonyms = result.items || [];
       renderSynonyms();
       status.textContent = `${shortInput.value.trim()} 동의어를 추가했습니다. 고객 챗봇의 다음 질문부터 반영됩니다.`;
+      status.className = "form-status";
       shortInput.value = "";
       fullInput.value = "";
     } catch (error) {
       status.textContent = `동의어를 추가하지 못했습니다. ${error.message}`;
+      status.className = "form-status error";
     }
   });
   document.querySelector("#synonym-list").addEventListener("click", async (event) => {
     const button = event.target.closest("[data-delete-synonym]");
     if (!button) return;
     const status = document.querySelector("#synonym-status");
+    const token = document.querySelector("#stage6-admin-token").value.trim();
+    if (!token) {
+      status.textContent = "Stage6 관리 키를 입력해 주세요.";
+      status.className = "form-status error";
+      return;
+    }
     try {
-      const result = await DuduApi.deleteStage6Synonym(stage6AdminToken(), button.dataset.deleteSynonym);
+      const result = await DuduApi.deleteStage6Synonym(token, button.dataset.deleteSynonym);
       synonyms = result.items || [];
       renderSynonyms();
       status.textContent = `${button.dataset.deleteSynonym} 동의어를 삭제했습니다.`;
+      status.className = "form-status";
     } catch (error) {
       status.textContent = `동의어를 삭제하지 못했습니다. ${error.message}`;
+      status.className = "form-status error";
     }
   });
 

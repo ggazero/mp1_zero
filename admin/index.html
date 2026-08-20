@@ -122,38 +122,67 @@
           <h1>챗봇이 안내할 답변을 관리합니다</h1>
           <p>Stage6의 4,705건 FAQ를 검색하고 필요한 답변을 수정할 수 있습니다.</p>
         </div>
-        <div class="toolbar">
-          <div class="toolbar-group">
-            <input id="stage6-admin-token" type="password" autocomplete="off" aria-label="Stage6 관리 키" placeholder="실행 터미널의 Stage6 관리 키">
-            <input id="faq-search" aria-label="FAQ 검색" placeholder="자격증명, 카테고리, 제목 또는 ID 검색">
-            <button id="search-faq" class="button ghost small" type="button">검색</button>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+          <div>
+            <div class="page-title admin-panel-title" style="margin-bottom: 1rem;">
+              <p class="eyebrow">FAQ 검색</p>
+              <h3 style="margin-top: 0.5rem;">필요한 답변을 수정합니다</h3>
+            </div>
+            <div class="toolbar">
+              <div class="toolbar-group">
+                <input id="stage6-admin-token" type="password" autocomplete="off" aria-label="Stage6 관리 키" placeholder="실행 터미널의 Stage6 관리 키">
+                <input id="faq-search" aria-label="FAQ 검색" placeholder="자격증명, 카테고리, 제목 또는 ID 검색">
+                <button id="search-faq" class="button ghost small" type="button">검색</button>
+              </div>
+              <div class="toolbar-group"><button id="reset-faq" class="button danger small" type="button">기본 문서로 되돌리기</button><button id="save-faq" class="button small" type="button">FAQ 변경 저장</button></div>
+            </div>
+            <p id="faq-status" class="form-status" role="status"></p>
           </div>
-          <div class="toolbar-group"><button id="reset-faq" class="button danger small" type="button">기본 문서로 되돌리기</button><button id="save-faq" class="button small" type="button">FAQ 변경 저장</button></div>
-        </div>
-        <p id="faq-status" class="form-status" role="status"></p>
-        <div id="faq-editor-list" class="faq-editor-list"></div>
-        <div class="pagination-bar">
-          <p id="faq-page-summary" aria-live="polite">0건</p>
-          <nav class="pagination" aria-label="FAQ 페이지">
-            <button id="faq-prev-page" class="page-button page-move" type="button">이전</button>
-            <button id="faq-next-page" class="page-button page-move" type="button">다음</button>
-          </nav>
+
+          <div>
+            <div class="page-title admin-panel-title" style="margin-bottom: 1rem;">
+              <p class="eyebrow">동의어 관리</p>
+              <h3 style="margin-top: 0.5rem;">줄임말을 등록합니다</h3>
+            </div>
+            <div class="toolbar">
+              <div class="toolbar-group">
+                <input id="synonym-short" aria-label="줄임말 또는 통칭" placeholder="예: 전기사">
+                <input id="synonym-full" aria-label="정식 명칭" placeholder="예: 전기기능사">
+                <button id="add-synonym" class="button small" type="button">동의어 추가</button>
+              </div>
+            </div>
+            <p id="synonym-status" class="form-status" role="status"></p>
+          </div>
         </div>
 
-        <div class="page-title admin-panel-title">
-          <p class="eyebrow">동의어 관리</p>
-          <h2>줄임말과 통칭을 관리합니다</h2>
-          <p>저장한 동의어는 고객 챗봇의 다음 질문부터 바로 반영됩니다.</p>
-        </div>
-        <div class="toolbar">
-          <div class="toolbar-group">
-            <input id="synonym-short" aria-label="줄임말 또는 통칭" placeholder="예: 전기사">
-            <input id="synonym-full" aria-label="정식 명칭" placeholder="예: 전기기능사">
-            <button id="add-synonym" class="button small" type="button">동의어 추가</button>
+        <div style="border-top: 1px solid #ddd; padding-top: 2rem;">
+          <div class="page-title admin-panel-title" style="margin-bottom: 1rem;">
+            <h2>문서 목록</h2>
           </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <label for="faq-page-size" style="display: flex; gap: 0.5rem; align-items: center; font-weight: 600;">
+              한 페이지
+              <select id="faq-page-size" style="padding: 0.25rem 0.5rem;">
+                <option value="5">5개</option>
+                <option value="10" selected>10개</option>
+                <option value="15">15개</option>
+              </select>
+            </label>
+          </div>
+          <div class="table-wrap">
+            <div id="faq-editor-list" class="faq-editor-list"></div>
+          </div>
+          <div class="pagination-bar">
+            <p id="faq-page-summary" aria-live="polite">0건</p>
+            <nav class="pagination" aria-label="FAQ 페이지">
+              <button id="faq-prev-page" class="page-button page-move" type="button">이전</button>
+              <span id="faq-page-numbers" class="page-numbers"></span>
+              <button id="faq-next-page" class="page-button page-move" type="button">다음</button>
+            </nav>
+          </div>
+          <div id="synonym-list" class="faq-editor-list" style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #ddd;"></div>
         </div>
-        <p id="synonym-status" class="form-status" role="status"></p>
-        <div id="synonym-list" class="faq-editor-list"></div>
       </section>
 
       <section id="questions-panel" class="tab-panel" role="tabpanel" hidden>
@@ -168,11 +197,29 @@
           <div class="stat question-stat"><span>자동 답변</span><strong id="question-auto-count">0건</strong><small>FAQ로 바로 안내한 질문</small></div>
           <div class="stat question-stat complete"><span>답변 완료</span><strong id="question-answered-count">0건</strong><small>관리자가 답변한 질문</small></div>
         </section>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <label for="question-page-size" style="display: flex; gap: 0.5rem; align-items: center; font-weight: 600;">
+            한 페이지
+            <select id="question-page-size" style="padding: 0.25rem 0.5rem;">
+              <option value="5">5개</option>
+              <option value="10" selected>10개</option>
+              <option value="15">15개</option>
+            </select>
+          </label>
+        </div>
         <div class="table-wrap">
           <table>
             <thead><tr><th>질문 시각</th><th>질문</th><th>자동응답 구분</th><th>관리자 처리상태</th></tr></thead>
             <tbody id="question-body"></tbody>
           </table>
+        </div>
+        <div class="pagination-bar">
+          <p id="question-page-summary" aria-live="polite">0건</p>
+          <nav class="pagination" aria-label="질문 페이지">
+            <button id="question-prev-page" class="page-button page-move" type="button">이전</button>
+            <span id="question-page-numbers" class="page-numbers"></span>
+            <button id="question-next-page" class="page-button page-move" type="button">다음</button>
+          </nav>
         </div>
       </section>
       </div>
