@@ -4,6 +4,7 @@ node_modules/
 npm-debug.log*
 __pycache__/
 *.pyc
+.gradio/
 .vercel
 .env*
 !.env.example
