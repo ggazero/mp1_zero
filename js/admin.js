@@ -411,6 +411,7 @@
 
   window.addEventListener("pageshow", () => {
     if (window.sessionStorage.getItem(ADMIN_UNLOCK_KEY) === "true") return;
+    document.body.classList.add("admin-auth-mode");
     adminSettings.hidden = true;
     adminHeaderTabs.hidden = true;
     adminAuth.hidden = false;
@@ -427,12 +428,14 @@
   async function init() {
     const configured = DuduApi.isConfigured();
     if (window.sessionStorage.getItem(ADMIN_UNLOCK_KEY) !== "true") {
+      document.body.classList.add("admin-auth-mode");
       adminSettings.hidden = true;
       adminHeaderTabs.hidden = true;
       adminAuth.hidden = false;
       adminContent.hidden = true;
       return;
     }
+    document.body.classList.remove("admin-auth-mode");
     adminAuth.hidden = true;
     adminContent.hidden = false;
     adminSettings.hidden = false;

@@ -10,13 +10,17 @@ FAQ를 추가/삭제하면 TF-IDF 인덱스가 자동 재구축된다.
 """
 from __future__ import annotations
 import json
+import re
 from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 ROOT = Path(__file__).resolve().parent
 DATA_PATH = ROOT.parent / "data" / "faq_combined.jsonl"
-UNKNOWN = "제공된 FAQ에서 확인할 수 없는 내용입니다."
+SYNONYMS_PATH = ROOT / "synonyms.json"
+UNKNOWN = "죄송합니다. 현재 제공된 FAQ에서 확인하기 어려운 내용입니다. 두두자격지원센터에 문의해 주세요."
+CLARIFY_CERT = "어떤 자격증을 확인하시나요? 자격증명을 함께 입력해 주세요."
+COMMON_CERT = "공통"
 
 CERT_ALIASES = {
     "한식조리기능사": "한식조리",
@@ -25,16 +29,73 @@ CERT_ALIASES = {
     "지게차 운전기능사": "지게차",
     "굴착기운전기능사": "굴착기",
     "굴착기 운전기능사": "굴착기",
+    "전기기능사": "전기",
+    "전기 기능사": "전기",
 }
+
+CERT_NAMES = (
+    "한식조리", "지게차", "굴착기", "전기",
+    "공인중개사", "손해평가사", "요양보호사", "위생사",
+)
+
+FAQ_INTENT_WORDS = (
+    "시험비", "응시료", "접수비", "비용", "금액", "얼마",
+    "접수", "신청", "환불", "취소", "합격", "기준", "점수",
+    "준비물", "신분증", "수험표", "계산기", "반입", "일정",
+    "기간", "응시자격", "자격", "시험장", "과목",
+)
+
+
+def _load_synonyms():
+    if not SYNONYMS_PATH.is_file():
+        return {}
+    return json.loads(SYNONYMS_PATH.read_text(encoding="utf-8"))
+
+
+def _save_synonyms():
+    SYNONYMS_PATH.write_text(
+        json.dumps(SYNONYMS, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+SYNONYMS = _load_synonyms()
+
+
+def get_synonyms_table():
+    return [[short, full] for short, full in sorted(SYNONYMS.items())]
+
+
+def add_synonym(short, full):
+    SYNONYMS[short] = full
+    _save_synonyms()
+
+
+def delete_synonym(short):
+    if short in SYNONYMS:
+        del SYNONYMS[short]
+        _save_synonyms()
+
+
+def _replace_aliases(text, aliases):
+    for alias in sorted(aliases, key=len, reverse=True):
+        text = re.sub(re.escape(alias), aliases[alias], text, flags=re.IGNORECASE)
+    return text
 
 
 def normalize_question(question):
-    normalized = question
+    normalized = _replace_aliases(question, SYNONYMS)
+    normalized = _replace_aliases(normalized, CERT_ALIASES)
+    return normalized.strip()
 
-    for full_name, short_name in CERT_ALIASES.items():
-        normalized = normalized.replace(full_name, short_name)
 
-    return normalized
+def detect_certificate(question):
+    normalized = normalize_question(question)
+    return next((cert for cert in CERT_NAMES if cert in normalized), None)
+
+
+def has_faq_intent(question):
+    return any(word in question for word in FAQ_INTENT_WORDS)
 
 def _load_jsonl(path):
     rows = []
@@ -116,6 +177,17 @@ def retrieve(question, top_k=3, min_score=0.05):
     return [(float(scores[i]), FAQ[i]) for i in top_indices if scores[i] >= min_score]
 
 
+def retrieve_common(question, top_k=3, min_score=0.05):
+    """자격증명이 없을 때 명시적으로 '공통'으로 등록된 FAQ만 찾는다."""
+    common_indices = [i for i, row in enumerate(FAQ) if row.get("cert") == COMMON_CERT]
+    if not common_indices:
+        return []
+    q_vec = vectorizer.transform([normalize_question(question)])
+    scores = cosine_similarity(q_vec, tfidf_matrix).flatten()
+    top_indices = sorted(common_indices, key=lambda i: scores[i], reverse=True)[:top_k]
+    return [(float(scores[i]), FAQ[i]) for i in top_indices if scores[i] >= min_score]
+
+
 def build_prompt(question, document):
     return f"""당신은 자격증 시험 접수 FAQ 상담원입니다.
 아래 근거 안에서만 답하세요. 근거에 없는 내용을 만들지 마세요.
@@ -131,7 +203,18 @@ def build_prompt(question, document):
 
 
 def answer_question(question, generate):
-    results = retrieve(question)
+    normalized_question = normalize_question(question)
+    certificate = detect_certificate(normalized_question)
+
+    if certificate:
+        results = retrieve(normalized_question)
+    else:
+        results = retrieve_common(normalized_question)
+        if not results:
+            if has_faq_intent(normalized_question):
+                return {"status": "CLARIFY", "answer": CLARIFY_CERT, "source": "없음", "score": 0}
+            return {"status": "UNKNOWN", "answer": UNKNOWN, "source": "없음", "score": 0}
+
     if not results:
         return {"status": "UNKNOWN", "answer": UNKNOWN, "source": "없음", "score": 0}
 
@@ -144,6 +227,6 @@ def answer_question(question, generate):
     return {
         "status": "ANSWERED",
         "answer": generated,
-        "source": f"{best_doc.get('cert', '?')} - {best_doc.get('title', '?')}",
+        "source": f"{best_doc.get('cert', 'FAQ')} · {best_doc.get('title') or best_doc.get('category') or 'FAQ'}",
         "score": best_score,
     }

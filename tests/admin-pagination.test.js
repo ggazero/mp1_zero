@@ -6,6 +6,7 @@ const path = require("node:path");
 const projectRoot = path.join(__dirname, "..");
 const adminHtml = fs.readFileSync(path.join(projectRoot, "admin", "index.html"), "utf8");
 const adminJs = fs.readFileSync(path.join(projectRoot, "js", "admin.js"), "utf8");
+const stylesCss = fs.readFileSync(path.join(projectRoot, "assets", "styles.css"), "utf8");
 
 test("접수내역은 5개, 10개, 15개 단위로 볼 수 있다", () => {
   for (const size of [5, 10, 15]) {
@@ -52,6 +53,17 @@ test("관리자 화면에서 고객 접수페이지로 돌아가는 홈 링크�
   assert.match(adminHtml, /id="admin-home-link" class="admin-home-link" href="\.\.\/"/);
   assert.match(adminHtml, /고객 접수페이지로 돌아가기/);
   assert.match(adminHtml, /class="admin-home-icon"/);
+});
+
+test("관리자 인증 화면의 카드와 입력 규격을 일관되게 유지한다", () => {
+  assert.match(adminHtml, /<body class="admin-page admin-auth-mode">/);
+  assert.match(adminHtml, /class="section compact admin-main"/);
+  assert.match(stylesCss, /\.admin-auth \{ width: min\(100%, 560px\); margin: 0 auto;/);
+  assert.match(stylesCss, /\.admin-auth input \{ min-height: 54px;/);
+  assert.match(stylesCss, /\.admin-auth \.button \{ width: 100%; min-height: 54px; \}/);
+  assert.match(stylesCss, /\.admin-page\.admin-auth-mode \.admin-main \{ display: flex; align-items: center;/);
+  assert.match(stylesCss, /\.admin-auth \{ padding: 24px; border-radius: 16px; \}/);
+  assert.match(adminJs, /document\.body\.classList\.remove\("admin-auth-mode"\)/);
 });
 
 test("고객 페이지로 돌아가면 관리자 잠금이 다시 설정된다", () => {

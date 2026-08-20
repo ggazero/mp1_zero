@@ -7,7 +7,7 @@
   <title>관리자 | 두두자격지원센터</title>
   <link rel="stylesheet" href="../assets/styles.css">
 </head>
-<body>
+<body class="admin-page admin-auth-mode">
   <a class="skip-link" href="#main">본문으로 바로가기</a>
   <header class="site-header">
     <div class="header-inner">
@@ -34,7 +34,7 @@
     </div>
   </header>
 
-  <main id="main" class="section compact">
+  <main id="main" class="section compact admin-main">
     <div class="container">
       <section id="admin-auth" class="panel admin-auth" hidden>
         <p class="eyebrow">관리자 인증</p>
@@ -47,7 +47,7 @@
         </form>
       </section>
 
-      <div id="admin-content">
+      <div id="admin-content" hidden>
       <section id="applications-panel" class="tab-panel" role="tabpanel">
       <div class="page-title admin-panel-title">
         <p class="eyebrow">접수 내역</p>

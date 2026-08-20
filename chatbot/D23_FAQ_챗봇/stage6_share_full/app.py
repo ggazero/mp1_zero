@@ -1,19 +1,13 @@
-"""
-[app.py] Gradio 챗봇 + FAQ 관리 - 완성형 (4,705건 + TF-IDF + share=True)
-=========================================================================
-Stage 3의 admin 기능 + Stage 5의 TF-IDF 검색을 합친 최종 버전.
-- 챗봇 탭: TF-IDF로 4,705건에서 정확하게 검색
-- FAQ 관리 탭: FAQ 추가/삭제 + 검색 필터
-
-수정 포인트:
-  [A1] FAQ 추가 후 TF-IDF 인덱스가 자동 재구축되는 것을 확인하세요
-"""
+"""두두자격지원센터 FAQ 챗봇과 FAQ·동의어 관리 화면."""
 from __future__ import annotations
 import os
 from pathlib import Path
 import gradio as gr
 from gemini import GeminiClient
-from rag import answer_question, rebuild_index, get_faq_table, add_faq_entry, delete_faq_entry, get_faq_count
+from rag import (
+    answer_question, rebuild_index, get_faq_table, add_faq_entry, delete_faq_entry,
+    get_faq_count, get_synonyms_table, add_synonym, delete_synonym,
+)
 
 
 def load_env():
@@ -33,14 +27,16 @@ client = GeminiClient()
 def chat(message, history):
     try:
         result = answer_question(message, client.generate)
-        return f"[{result['status']}] {result['answer']}\n\n출처: {result['source']} (유사도: {result['score']:.2f})"
-    except Exception as error:
-        return f"[ERROR] {type(error).__name__}: {error}"
+        if result["status"] == "ANSWERED" and result.get("source") not in ("", "없음"):
+            return f"{result['answer']}\n\n참고: {result['source']}"
+        return result["answer"]
+    except Exception:
+        return "죄송합니다. 현재 답변을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
 
 
 CERTS = [
     "한식조리기능사", "지게차운전기능사", "굴착기운전기능사", "전기기능사",
-    "공인중개사", "손해평가사", "요양보호사", "위생사",
+    "공인중개사", "손해평가사", "요양보호사", "위생사", "공통",
 ]
 
 
@@ -68,21 +64,38 @@ def do_search(query):
     return get_faq_table(query)
 
 
-with gr.Blocks(title="MP1 - 자격증 FAQ 챗봇 (완성형)") as demo:
+def do_add_synonym(short, full):
+    if not short.strip() or not full.strip():
+        return "줄임말과 정식 명칭을 모두 입력해 주세요.", get_synonyms_table()
+    add_synonym(short.strip(), full.strip())
+    return f"추가 완료: {short.strip()} → {full.strip()}", get_synonyms_table()
+
+
+def do_delete_synonym(short):
+    if not short.strip():
+        return "삭제할 줄임말을 입력해 주세요.", get_synonyms_table()
+    delete_synonym(short.strip())
+    return f"삭제 완료: {short.strip()}", get_synonyms_table()
+
+
+with gr.Blocks(title="두두자격지원센터 FAQ 챗봇") as demo:
 
     with gr.Tab("챗봇"):
-        gr.Markdown(f"## 자격증 시험 접수 FAQ 챗봇 (완성형)\n{get_faq_count()}건 FAQ + TF-IDF 검색 + Gemini 답변")
+        gr.Markdown(
+            f"## 두두자격지원센터 자격증 시험 FAQ\n"
+            f"{get_faq_count():,}건의 FAQ를 바탕으로 안내합니다. "
+            "정확한 답변을 위해 자격증명을 함께 입력해 주세요."
+        )
         chatbot = gr.ChatInterface(fn=chat, examples=[
             "한식조리기능사 시험비가 얼마예요?",
             "지게차 접수는 어디서 해요?",
-            "전기기능사 계산기 반입 되나요?",
             "요양보호사 합격 기준이 몇 점이에요?",
+            "요보사 합격 기준이 몇 점이에요?",
             "공인중개사 환불 규정이 어떻게 되나요?",
-            "굴착기 실기 준비물이 뭐예요?",
         ])
 
     with gr.Tab("FAQ 관리"):
-        gr.Markdown(f"## FAQ 관리 ({get_faq_count()}건)\nFAQ를 추가/삭제하면 TF-IDF 인덱스가 자동 재구축됩니다.")
+        gr.Markdown(f"## FAQ 관리 ({get_faq_count():,}건)\nFAQ를 추가하거나 삭제하면 검색 결과에 바로 반영됩니다.")
 
         with gr.Row():
             cert_input = gr.Dropdown(choices=CERTS, label="자격증", value="한식조리기능사")
@@ -111,6 +124,43 @@ with gr.Blocks(title="MP1 - 자격증 FAQ 챗봇 (완성형)") as demo:
         add_btn.click(do_add, [cert_input, cat_input, title_input, reply_input], [add_msg, faq_table])
         delete_btn.click(do_delete, [delete_id], [delete_msg, faq_table])
         search_btn.click(do_search, [search_input], [faq_table])
+
+    with gr.Tab("동의어 관리"):
+        gr.Markdown(
+            "## 동의어 관리\n"
+            "사용자가 자주 쓰는 줄임말이나 통칭을 등록하면 다음 질문부터 바로 검색에 반영됩니다."
+        )
+
+        with gr.Row():
+            synonym_short = gr.Textbox(label="줄임말/통칭", placeholder="예: 전기사")
+            synonym_full = gr.Textbox(label="정식 명칭", placeholder="예: 전기기능사")
+        add_synonym_btn = gr.Button("동의어 추가", variant="primary")
+        add_synonym_msg = gr.Textbox(label="결과", interactive=False)
+
+        gr.Markdown("---")
+
+        with gr.Row():
+            delete_synonym_short = gr.Textbox(label="삭제할 줄임말", placeholder="예: 전기사")
+            delete_synonym_btn = gr.Button("동의어 삭제", variant="stop")
+        delete_synonym_msg = gr.Textbox(label="결과", interactive=False)
+
+        gr.Markdown("---")
+        synonym_table = gr.Dataframe(
+            value=get_synonyms_table(),
+            headers=["줄임말/통칭", "정식 명칭"],
+            label="동의어 목록",
+        )
+
+        add_synonym_btn.click(
+            do_add_synonym,
+            [synonym_short, synonym_full],
+            [add_synonym_msg, synonym_table],
+        )
+        delete_synonym_btn.click(
+            do_delete_synonym,
+            [delete_synonym_short],
+            [delete_synonym_msg, synonym_table],
+        )
 
 
 if __name__ == "__main__":
