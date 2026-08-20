@@ -6,6 +6,7 @@ __pycache__/
 *.pyc
 .vercel
 .env*
+!.env.example
 supabase/.temp/
 
 # 공개 저장소에 포함하지 않는 원본 문서 (예시 개인정보 포함 가능)
