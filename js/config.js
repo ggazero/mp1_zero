@@ -3,5 +3,5 @@
 window.DUDU_CONFIG = {
   SUPABASE_URL: "https://qqaswnmqzmtleefltnlr.supabase.co",
   SUPABASE_ANON_KEY: "sb_publishable_JTQXigGUb3lA0LSlaG9T0Q_IzeJTM8A",
-  STAGE6_API_URL: "https://d1029db9193981a523.gradio.live"
+  STAGE6_API_URL: "https://01e54aea87d61dc2f9.gradio.live"
 };

@@ -4,6 +4,15 @@ from __future__ import annotations
 import json
 import hmac
 import os
+from pathlib import Path
+
+# .env 명시적 로드
+env_path = Path(__file__).resolve().parent / ".env"
+if env_path.is_file():
+    for raw in env_path.read_text(encoding="utf-8").splitlines():
+        if raw.strip() and not raw.lstrip().startswith("#") and "=" in raw:
+            key, value = raw.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip())
 
 import gradio as gr
 

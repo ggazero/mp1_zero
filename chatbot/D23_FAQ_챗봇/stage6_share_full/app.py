@@ -31,7 +31,25 @@ def chat(message, history):
             return f"{result['answer']}\n\n참고: {result['source']}"
         return result["answer"]
     except Exception:
-        return "죄송합니다. 현재 답변을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
+        try:
+            from rag import detect_certificate, normalize_question, retrieve, retrieve_common, CLARIFY_CERT
+            normalized = normalize_question(message)
+            certificate = detect_certificate(normalized)
+
+            if certificate:
+                results = retrieve(normalized)
+            else:
+                results = retrieve_common(normalized)
+
+            if results:
+                best_score, best_doc = results[0]
+                reply = best_doc.get('reply', best_doc.get('text', ''))
+                source = f"{best_doc.get('cert', 'FAQ')} · {best_doc.get('title', 'FAQ')}"
+                return f"{reply}\n\n참고: {source}"
+            else:
+                return CLARIFY_CERT if not certificate else "죄송합니다. 현재 제공된 FAQ에서 확인하기 어려운 내용입니다."
+        except:
+            return "죄송합니다. 현재 답변을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
 
 
 CERTS = [
