@@ -150,7 +150,7 @@
         return;
       }
 
-      if (!/^01\d{8,9}$/.test(phoneDigits)) {
+      if (!/^010\d{8}$/.test(phoneDigits)) {
         lookupStatus.textContent = "신청 연락처 형식을 확인해주세요. (예: 010-1234-5678)";
         lookupStatus.classList.add("error");
         return;

@@ -67,8 +67,22 @@
     const phoneDigits = phone.value.replace(/\D/g, "");
 
     if (!certificate.value) return showError("신청할 자격증을 선택해 주세요.", certificate);
-    if (name.length < 2) return showError("이름을 두 글자 이상 입력해 주세요.", form.elements.name);
-    if (!/^01\d{8,9}$/.test(phoneDigits)) return showError("연락처를 정확히 입력해 주세요.", phone);
+    if (
+  name.length < 2 ||
+  !/^[가-힣A-Za-z]+(?:\s+[가-힣A-Za-z]+)*$/.test(name)
+) {
+  return showError(
+    "이름은 한글 또는 영문으로 두 글자 이상 입력해 주세요.",
+    form.elements.name
+  );
+}
+
+if (!/^010\d{8}$/.test(phoneDigits)) {
+  return showError(
+    "연락처는 010으로 시작하는 11자리 휴대폰 번호를 입력해 주세요.",
+    phone
+  );
+}
     if (!document.querySelector("#privacy").checked) return showError("개인정보 수집 동의가 필요합니다.", document.querySelector("#privacy"));
 
     const now = new Date();
