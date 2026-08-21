@@ -83,7 +83,15 @@ a { color: inherit; }
 
 .hero { position: relative; min-height: calc(100svh - 76px); display: flex; align-items: center; overflow: hidden; background: var(--navy); color: white; }
 .hero::after { content: ""; position: absolute; width: 470px; height: 470px; right: -120px; top: -190px; border: 70px solid rgba(53,182,159,.18); border-radius: 50%; }
-.hero-inner { position: relative; z-index: 1; padding: clamp(54px, 7vh, 92px) 0; display: grid; grid-template-columns: 1.2fr .8fr; gap: clamp(58px, 7vw, 100px); align-items: center; }
+.hero-inner {
+  position: relative;
+  z-index: 1;
+  padding: clamp(54px, 7vh, 92px) 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(36px, 4vw, 64px);
+  align-items: center;
+}
 .eyebrow { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 14px; color: var(--mint); font-size: 15px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
 .eyebrow::before { content: ""; width: 24px; height: 3px; background: currentColor; border-radius: 3px; }
 h1, h2, h3, p { margin-top: 0; }
@@ -101,6 +109,75 @@ h1 { max-width: 720px; margin-bottom: 20px; font-size: clamp(38px, 5vw, 62px); l
 .hero-note ol { margin: 0; padding-left: 23px; }
 .hero-note li { font-size: 18px; }
 .hero-note li + li { margin-top: 11px; }
+.hero-copy {
+  min-width: 0;
+}
+
+.hero-copy .hero-note {
+  margin-top: 30px;
+  max-width: 520px;
+}
+
+.hero-menu {
+  padding: 34px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: var(--radius);
+  background: rgba(255,255,255,.08);
+  box-shadow: var(--shadow);
+}
+
+.hero-menu-label {
+  margin: 0 0 8px;
+  color: var(--mint);
+  font-weight: 700;
+}
+
+.hero-menu h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(26px, 2.4vw, 34px);
+}
+
+.hero-menu-guide {
+  margin: 10px 0 24px;
+}
+
+.hero-menu-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.hero .hero-menu-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 105px;
+  width: 100%;
+  padding: 20px 22px;
+  text-align: left;
+}
+
+.hero-menu-button strong {
+  font-size: 20px;
+}
+
+.hero-menu-button span {
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  opacity: .8;
+}
+
+.hero .hero-application-button {
+  background: var(--amber);
+  color: var(--navy-deep);
+}
+
+.hero .hero-application-button:hover {
+  background: #f7b653;
+}
 
 .button { min-height: 50px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; border: 0; border-radius: 13px; background: var(--mint); color: #092b27; font-weight: 900; text-decoration: none; cursor: pointer; transition: .18s ease; }
 .button:hover { transform: translateY(-2px); background: #4fc9b4; }
@@ -477,4 +554,88 @@ tbody tr:last-child td { border-bottom: 0; }
   #success-box, #success-box * { visibility: visible; }
   #success-box { position: absolute; inset: 0 auto auto 0; display: block; width: 100%; border: 0; box-shadow: none; background: white; }
   #success-box .no-print { display: none; }
+}
+/* ===== 첫 화면 빠른 시작 메뉴 개선 ===== */
+
+/* 오른쪽 큰 박스 제거 */
+.hero-menu {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* 버튼 4개를 위아래로 배치 */
+.hero-menu-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+/* 버튼 공통 디자인 */
+.hero .hero-menu-button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+
+  width: 100%;
+  min-height: 88px;
+  padding: 18px 60px 18px 24px;
+
+  border-radius: 18px;
+  text-align: left;
+  cursor: pointer;
+
+  box-shadow: 0 6px 0 rgba(7, 37, 53, .22);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+/* 오른쪽 화살표 */
+.hero .hero-menu-button::after {
+  content: "→";
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 25px;
+  font-weight: 900;
+}
+
+/* 마우스 올렸을 때 */
+.hero .hero-menu-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 9px 16px rgba(7, 37, 53, .25);
+}
+
+/* 눌렀을 때 */
+.hero .hero-menu-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 rgba(7, 37, 53, .22);
+}
+
+/* 1. 간편접수 */
+.hero .hero-application-button {
+  background: var(--amber);
+  color: var(--navy-deep);
+}
+
+/* 2. 자격증 선택 */
+.hero .hero-certificate-button {
+  background: #fff;
+  color: #e58b14;
+  border: 2px solid var(--amber);
+}
+
+/* 3. 접수확인 */
+.hero .hero-lookup-button {
+  background: var(--mint);
+  color: var(--navy-deep);
+}
+
+/* 4. 문의사항 */
+.hero .hero-menu-button.secondary {
+  background: #fff;
+  color: var(--navy-deep);
 }
